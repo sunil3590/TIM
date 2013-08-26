@@ -8,7 +8,6 @@ import threading
 try:
 	sys.path.append('/wolfbot/agent')
 	import wolfbot as wb
-#	sys.path.append('/boot/uboot/tim_code/sensors/')
 	from ir_ain import IR_AIN
 	valid_wb = True
 except:
@@ -22,6 +21,7 @@ class Motion(object):
 			#create ir travel object to be used for motion.start()
 			self.ir = IR_AIN(0)  #travel ir on ADC0 for bot 10
 			self.w = wb.wolfbot()
+			self.w.move(0, 0)
 		else:
 			print "Running Motion with fake data"
 	
@@ -138,6 +138,8 @@ def main():
 	else:
 		print "Error in creating Motion object"
 		exit(1)
+	# time to re align the wolfbot
+	sleep(5)
 	bot_mot.start()
 
 	print "Test IR: " + str(bot_mot.ir.val())
