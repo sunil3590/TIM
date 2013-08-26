@@ -73,6 +73,10 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 		print "Error in creating Motion object"
 		mqttc.disconnect()
 		return
+
+	# give time to manually align the bot
+	print "Manually align the bot"
+	sleep(3)
 	
 	# sensor object to read markings on road
 	bot_sensor = sensor.Sensor()
@@ -108,7 +112,7 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 			mqttc.publish("tim/27606/request", pass_req)
 			journey_state = "NEED_RED"
 
-		elif journey_state == "NEED_RED"
+		elif journey_state == "NEED_RED":
 			# keep waiting till you come across red line
 			if bot_sensor.is_Red() == False:
 				continue
