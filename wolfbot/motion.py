@@ -46,27 +46,28 @@ class Motion(object):
 
 	# make a hardcoded left turn
 	def cross_left(self):
-		if valid_wb: #TODO motion left
-			self.w.move(0,50)
-			sleep(2)
-			self.w.rotate(-30)
-			sleep(1)
-			self.w.move(0,50)
-			sleep(2)
-			self.w.move(0,0)
+		if valid_wb: 
+			self.w.move(0,60)
+			sleep( 2 )
+			self.w.rotate( 27 )  #ccw turn
+			sleep( 0.5 )
+			self.w.move(0, 60)
+			sleep( 1.2 )
+			self.w.rotate( 27 )
+			sleep( 0.5 )
+			self.w.move( 0, 60 )
+			sleep( 1.5 )
+			self.w.move( 0, 0 )
+			print "Turned Left"
 		else:
 			print "Turning Left!"
 
 
 	# make a hardcoded straight motion		
 	def cross_straight(self):
-		if valid_wb: #TODO motion straight
-			self.w.move(0,50)
-			sleep(2)
-			self.w.rotate(-30)
-			sleep(1)
-			self.w.move(0,50)
-			sleep(2)
+		if valid_wb: 
+			self.w.move(0,60)
+			sleep(4)
 			self.w.move(0,0)
 		else:
 			print "Crossing Straight!"
@@ -75,12 +76,10 @@ class Motion(object):
 	# make a hardcoded right turn
 	def cross_right(self):
 		if valid_wb: #TODO motion right
-			self.w.move(0,50)
-			sleep(2)
-			self.w.rotate(-30)
-			sleep(1)
-			self.w.move(0,50)
-			sleep(2)
+			self.w.move(0,60)
+			sleep(1.4)
+			self.w.rotate(-30)	##neg cw right turn
+			sleep(0.9)
 			self.w.move(0,0)	
 		else:
 			print "Turning Right!"
