@@ -21,7 +21,7 @@ def prepare_mqttc(mqtt_host, bot_id):
 	# create a mqtt client
 	mqttc = paho.Client(client_id="bot_" + bot_id)
 	mqttc.on_message = on_command
-	mqttc.connect(host=mqtt_host, port=1883, keepalive=60)
+	mqttc.connect(host=mqtt_host, port=mosqt_port, keepalive=60)
 	
 	# subscribe to TOPIC
 	topic = get_topic(bot_id)
@@ -173,8 +173,8 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 # main function
 def main():
 	# check usage
-	if len(sys.argv) != 5:
-		print "Usage : python tim.py <BOT_ID> <MOSQUITTO_HOST> <ENTRY_LANE> <EXIT_LANE>"
+	if len(sys.argv) != 6:
+		print "Usage : python tim.py <BOT_ID> <MOSQUITTO_HOST> <ENTRY_LANE> <EXIT_LANE> <MOSQUITTO_PORT>"
 		exit(1)
 	
 	# process command line arguments
@@ -182,6 +182,7 @@ def main():
 	mqtt_host = sys.argv[2]
 	entry_lane = int(sys.argv[3])
 	exit_lane = int(sys.argv[4])
+	mosqt_port = sys.argv[5]
 	if exit_lane > 4 or exit_lane < 1:
 		print "Invalid exit lane : 1 to 4"
 		exit(1)
