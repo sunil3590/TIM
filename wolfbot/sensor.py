@@ -1,5 +1,5 @@
 from ir_ain import IR_AIN
-from color_sensor_ISL2915 import color_senser
+from color_sensor_ISL29125 import color_senser
 
 
 
@@ -9,7 +9,7 @@ class Sensor(object):
 		self.ir = IR_AIN( 1 )   # ADC1 is position (left) ir on bot 10
 		self.ir.set_thresh( 0.5 )  # 0.5V threshold for black values
 		self.cs = color_senser()
-		if not cs.valid_init:
+		if not self.cs.valid_init:
 			print "Color Sensor invalid"
 		
 		
