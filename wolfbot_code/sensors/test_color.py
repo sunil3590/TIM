@@ -1,7 +1,7 @@
-import cs_class
+import color_sensor_ISL29125
 from time import time
 
-cs = cs_class.color_senser(1)
+cs = color_sensor_ISL29125.color_senser(1)
 
 if cs.valid_init:
 	print "Valid color sensor"
