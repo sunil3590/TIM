@@ -1,77 +1,151 @@
 import os
 import csv
-from i2c.Adafruit_I2C import Adafruit_I2C
+import sys
+sys.path.append('/wolfbot/agenti/i2c/')
 
-csv.register_dialect('nospace', skipinitialspace=True)
+from Adafruit_I2C import Adafruit_I2C
 
-def clean_csv(f):
-  for line in f:
-      line = line.strip()
-      if line and not line.startswith('#'):
-          yield line
-
-def signed_16(low,high):
-  val = low + (high<<8)
-  # two's compliment
-  if val & (1<<15):
-      val -= (1<<16)
-  return val
-  
-# We must OR with 0x80 to set the MSB of the register, allowing multiple reads
-MULTI = 0x80
+from  ISL29125_const import *
 
 
+
+#based on SparkFunISL29125.cpp
 
 class color_senser(Adafruit_I2C):
 
+# Initialize - returns true if successful
+# Starts Wire/I2C Communication
+# Verifies sensor is there by checking its device ID
+# Resets all registers/configurations to factory default
+# Sets configuration registers for the common use case
 	def __init__(self, enable=True):
-		self.sub_address = 0x44
-		"""     reg = {}
-		cur_dir = os.path.dirname(os.path.abspath(__file__))
-		with open(cur_dir + '/lsm/lsm_accel_map.csv', 'r') as f:
-		data = csv.DictReader(clean_csv(f), dialect='nospace')
-		for row in data:
-		name = row['register']
-		reg[name] = int(row['hex'],base=16)
-		self.reg = reg
-		"""   
+		ret = 1
+		self.sub_address = ISL_I2C_ADDR
+
+		#Start I2C device
 		try:
 			self.i2c = Adafruit_I2C(self.sub_address, busnum=1, debug=False)
 		except IOError as e:
 			print "I2C init failed: %s" % e.strerror
 
-		if enable:
-			self.enable()
+		#Check device ID
+		if( self.i2c.readS8(DEVICE_ID) != 0x7D):
+			ret &= 0
 
-	def enable(self):
-		# From example code reset
-		data = 0x00;
-		# Reset registers
-		self.i2c.write8(self.sub_address, 0x46);
-		# Check reset
-		data = read8(CONFIG_1);
-		data |= read8(CONFIG_2);
-		data |= read8(CONFIG_3);
-		data |= read8(STATUS);
-		if (data != 0x00)
-		{
-		return false;
-		}
-		return true;
-		#self.i2c.write8(self.reg['CTRL_REG1_A'], rate_10hz|X_en|Y_en|Z_en) 
-           
-  def read_x(self):
-      low,high = self.i2c.readList(self.reg['OUT_X_L_A'] | MULTI, 2)
-      return signed_16(low,high)
+		#reset registers
+		data = 0
+		self.i2c.write8(DEVICE_ID, 0x46)
+		#check reset
+		data |= self.i2c.readS8(CONFIG_1)
+		data |= self.i2c.readS8(CONFIG_1)
+		data |= self.i2c.readS8(CONFIG_3)
+		data |= self.i2c.readS8(STATUS)
+		if( data != 0x0 ):
+			ret &= 0
 
-  def read_y(self):
-      low,high = self.i2c.readList(self.reg['OUT_Y_L_A'] | MULTI, 2)
-      return signed_16(low,high)
+		# Set to RGB mode, 10k lux, and high IR compensation
+		ret &= self.config(CFG1_MODE_RGB | CFG1_375LUX | CFG1_12BIT, CFG2_IR_ADJUST_LOW, CFG3_G_INT|CFG3_R_INT|CFG3_B_INT )
 
-  def read_z(self):
-      low,high = self.i2c.readList(self.reg['OUT_Z_L_A'] | MULTI, 2)
-      return signed_16(low,high)
+		self.valid_init = ret
 
-  def read(self):
-      x_l,x_h,y_l,y_h,z_l,z_h = self.i2c.readList(self.reg['OUT_X_L_A'] | MULTI, 6)
-      return signed_16(x_l,x_h),signed_16(y_l,y_h),signed_16(z_l,z_h)
+
+
+# Setup Configuration registers (three registers) - returns true if successful
+# Use CONFIG1 variables from SFE_ISL29125.h for first parameter config1, CONFIG2 for config2, 3 for 3
+# Use CFG_DEFAULT for default configuration for that register
+	def config( self,config1, config2, config3):
+		ret = 1
+		data = 0x00
+
+		# Set 1st configuration register
+		self.i2c.write8(CONFIG_1, config1)
+
+		# Set 2nd configuration register
+		self.i2c.write8(CONFIG_2, config2)
+
+		# Set 3rd configuration register
+		self.i2c.write8(CONFIG_3, config3)
+
+
+		# Check if configurations were set correctly
+		data = self.i2c.readS8(CONFIG_1)
+		if (data != config1):
+			ret &= 0
+
+		data = self.i2c.readS8(CONFIG_2)
+		if (data != config2):
+			ret &= 0
+
+		data = self.i2c.readS8(CONFIG_3)
+		if (data != config3):
+			ret &= 0
+
+		return ret
+
+
+
+
+	# Sets upper threshold value for triggering interrupts
+	def setUpperThreshold(self, data):
+		self.i2c.write16(THRESHOLD_HL, data)
+
+
+	# Sets lower threshold value for triggering interrupts
+	def setLowerThreshold( self, data):
+		self.i2c.write16(THRESHOLD_LL, data)
+
+
+	# Check what the upper threshold is, 0xFFFF by default
+	def readUpperThreshold(self):
+		return self.i2c.readU16(THRESHOLD_HL)
+
+
+	# Check what the upper threshold is, 0x0000 by default
+	def readLowerThreshold(self):
+		return self.i2c.readU16(THRESHOLD_LL)
+
+
+	# Read the latest Sensor ADC reading for the color Red
+	def readRed(self):
+		return self.i2c.readU16(RED_L)
+
+
+	# Read the latest Sensor ADC reading for the color Green
+	def readGreen(self):
+		return self.i2c.readU16(GREEN_L)
+
+
+	# Read the latest Sensor ADC reading for the color Blue
+	def readBlue(self):
+		return self.i2c.readU16(BLUE_L)
+
+
+	# Check status flag register that allows for checking for interrupts, brownouts, and ADC conversion completions
+	def readStatus(self):
+		word =  self.i2c.readU8(STATUS)
+		
+		stat = ""
+
+		if (word &  FLAG_CONV_B) ==  FLAG_CONV_B :
+			stat += " FLAG_CONV_B"
+		if (word &  FLAG_CONV_R) ==  FLAG_CONV_R :
+			stat += " FLAG_CONV_R"
+		if (word &  FLAG_CONV_G) ==  FLAG_CONV_G :
+			stat += " FLAG_CONV_G"
+		if (word &  FLAG_BROWNOUT) ==  FLAG_BROWNOUT :
+			stat += " FLAG_BROWNOUT"
+		if (word &  FLAG_CONV_DONE) ==  FLAG_CONV_DONE :
+			stat += " FLAG_CONV_DONE"
+		if (word & FLAG_INT) == FLAG_INT :
+			stat += " FLAG_INT"
+
+
+		if stat == "":
+			stat = "No Status Flags"
+
+		return stat
+
+
+
+
+
