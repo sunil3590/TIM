@@ -7,6 +7,15 @@ from Adafruit_I2C import Adafruit_I2C
 
 from  ISL29125_const import *
 
+try:
+	from rgb_config import rgb_colors
+	valid_rgb = True
+except ImportError:
+	print "No rgb_config, will not be able to identify colors"
+	valid_rgb = False 
+
+from operator import sub
+
 
 
 #based on SparkFunISL29125.cpp
@@ -44,7 +53,7 @@ class color_senser(Adafruit_I2C):
 			ret &= 0
 
 		# Set to RGB mode, 10k lux, and high IR compensation
-		ret &= self.config(CFG1_MODE_RGB | CFG1_375LUX | CFG1_12BIT, CFG2_IR_ADJUST_LOW, CFG3_G_INT|CFG3_R_INT|CFG3_B_INT )
+		ret &= self.config(CFG1_MODE_RGB | CFG1_10KLUX | CFG1_12BIT, CFG2_IR_ADJUST_HIGH, CFG3_NO_INT )
 
 		self.valid_init = ret
 
@@ -146,6 +155,33 @@ class color_senser(Adafruit_I2C):
 		return stat
 
 
+	# Use rgb_colors to guestimate what the color is from sensor values
+	def roadColor(self):
+		if not valid_rgb:
+			print "No valid rgb_config"
+			return "No valid rgb_config"
+		else:
+			red_list = []
+			green_list = []
+			blue_list = []
+			for x in range(100):
+				stat = cs.readStatus()
+				if "" in stat:                  #"FLAG_CONV_DONE" in stat:
+					if "FLAG_CONV_R" not in stat:
+						red_list.append( cs.readRed() )
+					if "FLAG_CONV_G" not in stat:
+						green_list.append( cs.readGreen() )
+					if "FLAG_CONV_G" not in stat:
+						blue_list.append( cs.readBlue() )
+			red_avg = float(sum( red_list)) / float(len(red_list))
+			green_avg = float(sum( green_list)) / float(len(green_list))
+			blue_avg = float(sum( blue_list)) / float(len(blue_list))
 
+			for color,vals in rgb_colors.items():
+				if all( i < 1000 for i in  map(sub, vals, [red_avg,green_avg,blue_avg])):
+					return str(color)
+
+			# Nothing matched within 1000 of all rgb_colors
+			return "No valid color found"			
 
 
