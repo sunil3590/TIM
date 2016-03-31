@@ -1,0 +1,23 @@
+Demo 1 - Simple demo
+--------------------
+Movement
+	Bot 1 : South to North
+	Bot 2 : East to West
+
+Timing
+	Bot 1 > Bot 2
+
+Expected
+	Bot 1 gets to cross the junction before Bot 2
+
+Demo 2 - EMS demo
+-----------------
+Movement
+	Bot 1 : South to North
+	Bot 2 : EMS : East to West
+
+Timing
+	Bot 1 > Bot 2
+
+Expected
+	Bot 2 gets to cross the junction before Bot 1
