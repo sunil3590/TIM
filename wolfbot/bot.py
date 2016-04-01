@@ -2,6 +2,7 @@
 
 import sys
 import paho.mqtt.client as mqtt
+import json
 
 # The callback for when a PUBLISH message is received from the server.
 def on_command(client, userdata, msg):
@@ -21,6 +22,10 @@ client = mqtt.Client(client_id="bot_" + bot_id)
 client.on_message = on_command
 client.connect(host="localhost", port=1883, keepalive=60)
 client.subscribe(topic)
+
+# create request json
+jsonstr = '{"speed":35,"enter":"yellow","exit":"blue"}'
+jsonReading = json.loads(jsonstr)
 
 # request TIM to cross
 client.publish("tim/27606/request", "{speed:35,enter:yellow,exit:blue}")
