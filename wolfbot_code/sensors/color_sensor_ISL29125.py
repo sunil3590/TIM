@@ -15,8 +15,8 @@ except ImportError:
 	valid_rgb = False 
 
 from operator import sub
-
-
+from operator import abs
+#from operator import int
 
 #based on SparkFunISL29125.cpp
 
@@ -57,7 +57,8 @@ class color_senser(Adafruit_I2C):
 
 		self.valid_init = ret
 
-
+		# read and save rgb values from file
+		self.setup_rgb_colors()
 
 # Setup Configuration registers (three registers) - returns true if successful
 # Use CONFIG1 variables from SFE_ISL29125.h for first parameter config1, CONFIG2 for config2, 3 for 3
@@ -91,7 +92,20 @@ class color_senser(Adafruit_I2C):
 
 		return ret
 
+	# Reads the raw_rgb.txt
+	def setup_rgb_colors(self):
+		rgb_colors = {}
+		self.rgb_colors = {}
+		try:
+			fc = open("raw_rgb.txt",'r')
+		except IOError:
+			print "No raw_rgb.txt"
+			return
 
+		for x in range(7):
+			tmp = fc.readline().split()
+			rgb_colors[tmp[0]]=map(float,tmp[1:])
+		self.rgb_colors = rgb_colors
 
 
 	# Sets upper threshold value for triggering interrupts
@@ -156,7 +170,7 @@ class color_senser(Adafruit_I2C):
 
 
 	# Use rgb_colors to guestimate what the color is from sensor values
-	def roadColor(self):
+	def roadColor2(self):
 		if not valid_rgb:
 			print "No valid rgb_config"
 			return "No valid rgb_config"
@@ -165,20 +179,50 @@ class color_senser(Adafruit_I2C):
 			green_list = []
 			blue_list = []
 			for x in range(100):
-				stat = cs.readStatus()
+				stat = self.readStatus()
 				if "" in stat:                  #"FLAG_CONV_DONE" in stat:
 					if "FLAG_CONV_R" not in stat:
-						red_list.append( cs.readRed() )
+						red_list.append( self.readRed() )
 					if "FLAG_CONV_G" not in stat:
-						green_list.append( cs.readGreen() )
+						green_list.append( self.readGreen() )
 					if "FLAG_CONV_G" not in stat:
-						blue_list.append( cs.readBlue() )
+						blue_list.append( self.readBlue() )
 			red_avg = float(sum( red_list)) / float(len(red_list))
 			green_avg = float(sum( green_list)) / float(len(green_list))
 			blue_avg = float(sum( blue_list)) / float(len(blue_list))
 
 			for color,vals in rgb_colors.items():
-				if all( i < 1000 for i in  map(sub, vals, [red_avg,green_avg,blue_avg])):
+				if all( i < 1000 for i in map(abs, map(sub, vals, [red_avg,green_avg,blue_avg]))):
+					return str(color)
+
+			# Nothing matched within 1000 of all rgb_colors
+			return "No valid color found"			
+
+
+	# Use rgb_colors to guestimate what the color is from sensor values
+	def roadColor(self):
+		if len(self.rgb_colors) < 1:
+			print "No valid raw_rgb.txt"
+			return "No valid raw_rgb_txt"
+		else:
+			red_list = []
+			green_list = []
+			blue_list = []
+			for x in range(100):
+				stat = self.readStatus()
+				if "" in stat:                  #"FLAG_CONV_DONE" in stat:
+					if "FLAG_CONV_R" not in stat:
+						red_list.append( self.readRed() )
+					if "FLAG_CONV_G" not in stat:
+						green_list.append( self.readGreen() )
+					if "FLAG_CONV_G" not in stat:
+						blue_list.append( self.readBlue() )
+			red_avg = float(sum( red_list)) / float(len(red_list))
+			green_avg = float(sum( green_list)) / float(len(green_list))
+			blue_avg = float(sum( blue_list)) / float(len(blue_list))
+
+			for color,vals in self.rgb_colors.items():
+				if all( i < 1000 for i in map(abs, map(sub, vals, [red_avg,green_avg,blue_avg]))):
 					return str(color)
 
 			# Nothing matched within 1000 of all rgb_colors
