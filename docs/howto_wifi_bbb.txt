@@ -1,0 +1,30 @@
+How to configure wifi on the wolfbot
+
+1) Check to see if the USB wifi adapter is detected on the beagle bone. 
+#]lsusb
+Running the above command should give the name of the usb adapter
+
+2) Run the wpa password generator command with the wifi network name and the actual password
+#]wpa_passphrase [SSID] [passphrase]
+	for example : if my network name is "netgear10" and the password is "netgear10"
+	Running the command: wpa_passphrase netgear10 netgear10
+	will give you the encrypted password. Copy this password
+	network={
+	ssid="myhome"
+	#psk="mysecretpsw"
+	psk=b8721a39d4e01b85a44c5ca932ce742f4a3da0bfb44712150116ff56da476cd1
+	}
+	IN THIS EXAMPLE, COPY THE psk VALUE
+
+3) sudo nano /etc/network/interfaces
+add the below to the file
+
+auto wlan0
+iface wlan0 inet dhcp
+wpa-ssid netgear10
+wpa-psk YourEncryptedPassPhrase_Thatwascopiedabove
+
+
+4) Reboot the BBB
+#]shutdown -r now
+

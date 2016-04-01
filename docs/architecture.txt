@@ -1,0 +1,5 @@
+This document illustrates how TIM can be deployed in the real world
+
+Architecure
+-----------
+Entire space is divided into zones and a unique IP is associated with each zone. A zone can be a postal code. Each zone has one mosquitto instance and one or more TIM instances behind mosquitto (can have multiple if the zone is busy)
