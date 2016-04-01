@@ -24,11 +24,19 @@ client.connect(host="localhost", port=1883, keepalive=60)
 client.subscribe(topic)
 
 # create request json
-jsonstr = '{"speed":35,"enter":"yellow","exit":"blue"}'
-jsonReading = json.loads(jsonstr)
+def create_json(speed, enter, exit):
+	jsonStr = {}
+	jsonStr["speed"] = speed
+	jsonStr["enter"] = enter
+	jsonStr["exit"] = exit
+	jsonTree = json.dumps(jsonStr)
+	jsonDict = json.loads(jsonTree)
+	return jsonDict
+
+jsonReading = create_json(35,"Yellow","Blue")
 
 # request TIM to cross
-client.publish("tim/27606/request", "{speed:35,enter:yellow,exit:blue}")
+client.publish("tim/27606/request", json.dumps(jsonReading))
 client.loop(2)
 
 # Blocking call that processes network traffic, dispatches callbacks and

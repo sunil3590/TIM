@@ -4,15 +4,24 @@ import sys
 import paho.mqtt.client as paho
 import json
 
+def createJson(command):
+    jsonstr={}
+    jsonstr["command"]=command
+    jsonTree = json.dumps(jsonstr)
+    jsonDict = json.loads(jsonTree)
+    return jsonDict
+
 # The callback for when a PUBLISH message is received from the server.
 def on_request(client, userdata, msg):
     print msg.payload
     # compose response json object
-    jsonstr = '{"command" : "STOP"}'
-    jsonRead = json.loads(jsonstr)
+    #jsonstr = '{"command" : "STOP"}'
+    #jsonRead = json.loads(jsonstr)
+    command="STOP"
+    jsonRead = createJson(command)
     # send a command to wolfbot
     # TODO : extract data from payload, dont hard code the bot id
-    client.publish("tim/wolfbot/1/command", "STOP")
+    client.publish("tim/wolfbot/1/command", json.dumps(jsonRead))
     client.loop(2)
 
 # process command line arguments
