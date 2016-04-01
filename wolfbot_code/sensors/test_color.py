@@ -20,6 +20,7 @@ for x in range(5):
 	print "Green: " + str( cs.readGreen())
 	print "Blue : " + str( cs.readBlue())
 	t1 = time()
+	print "Guessed Color is " + cs.roadColor()
 	print "Sample time: " + str( int((t1-t0)*10000)/10.0) + "ms"
 
 
