@@ -11,6 +11,8 @@ def on_connect(client, userdata, rc):
 def on_message(client, userdata, msg):
     print("Topic: ", msg.topic, "Message: ", str(msg.payload))
 
+
+#client to subscribe to topic
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
@@ -18,6 +20,7 @@ client.on_message = on_message
 client.connect("localhost", 1883, 60)
 
 # request TIM to cross
+#mqttc to publish on a topic
 mqttc = mqtt.Client("python_pub")
 mqttc.connect("localhost", 1883)
 mqttc.publish("TIM/J_ID/REQUEST", "{speed:35,enter:yellow,exit:blue}")

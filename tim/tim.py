@@ -11,11 +11,13 @@ def on_connect(client, userdata, rc):
 def on_message(client, userdata, msg):
     print("Topic: ", msg.topic, "Message: ", str(msg.payload))
     # send a command to wolfbot
+    #mqttc to publish to a topic
     mqttc = mqtt.Client("python_pub")
     mqttc.connect("localhost", 1883)
     mqttc.publish("TIM/CAR/C_ID/COMMAND", "STOP")
     mqttc.loop(2)
 
+#client to subscribe to a topic
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
