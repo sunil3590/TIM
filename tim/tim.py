@@ -33,18 +33,23 @@ def on_request(client, userdata, msg):
     # send the intial default command to STOP
     pass_res = create_pass_response("STOP")
     client.publish(pass_req["respond_to"], json.dumps(pass_res))
-    client.loop(2)
 
-# process command line arguments
-if len(sys.argv) != 2:
-    print("Usage : python tim.py <POSTAL_CODE>")
-postal = str(sys.argv[1])
+# main function
+def main():
+	# process command line arguments
+	if len(sys.argv) != 2:
+		print("Usage : python tim.py <POSTAL_CODE>")
+		exit(1)
+	postal = str(sys.argv[1])
+	
+	# get a client
+	client = prepare_client(postal)
+	
+	# Blocking call that processes network traffic, dispatches callbacks and
+	# handles reconnecting.
+	# Other loop*() functions are available that give a threaded interface and a
+	# manual interface.
+	client.loop_forever()
 
-# get a client
-client = prepare_client(postal)
-
-# Blocking call that processes network traffic, dispatches callbacks and
-# handles reconnecting.
-# Other loop*() functions are available that give a threaded interface and a
-# manual interface.
-client.loop_forever()
+if __name__ == "__main__":
+	main()
