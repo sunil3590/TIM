@@ -222,9 +222,9 @@ class color_senser(Adafruit_I2C):
 			blue_avg = float(sum( blue_list)) / float(len(blue_list))
 
 			for color,vals in self.rgb_colors.items():
-				if all( i < 1000 for i in map(abs, map(sub, vals, [red_avg,green_avg,blue_avg]))):
-					return str(color)
-
+			#	if all( i < 1000 for i in map(abs, map(sub, vals, [red_avg,green_avg,blue_avg]))):
+			#		return str(color)
+				diff[color] = map(abs,map(sub, vals, [red_avg,green_avg,blue_avg])).sum()
 			# Nothing matched within 1000 of all rgb_colors
 			return "No valid color found"			
 
