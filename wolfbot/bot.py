@@ -3,23 +3,15 @@
 import sys
 import paho.mqtt.client as paho
 import json
+import threading
+import Queue
+
+# queue of commands for inter thread communication
+command_q = Queue.Queue() # STOP_AT_RED, GO_AT_RED
 
 # Create topic from bot_id
 def get_topic(bot_id):
-	return "tim/wolfbot/" + bot_id + "/command"
-
-# The callback for when a PUBLISH message is received from the server.
-def on_command(client, userdata, msg):
-	print msg.payload
-
-# create request json
-def create_pass_request(speed, enter, exit, topic):
-	req = {}
-	req["speed"] = speed
-	req["enter"] = enter
-	req["exit"] = exit
-	req["respond_to"] = topic
-	return req
+	return "wolfbot/" + bot_id + "/command"
 
 # initialze a client and connect to the server
 def prepare_client(bot_id):
@@ -32,23 +24,96 @@ def prepare_client(bot_id):
 	client.subscribe(topic)
 	return client
 
-# process command line arguments
-if len(sys.argv) != 2:
-	print("Usage : python tim.py <BOT_ID>")
-bot_id = str(sys.argv[1])
+# create request json
+def create_pass_request(speed, enter_lane, exit_lane, topic):
+	req = {}
+	req["speed"] = speed
+	req["enter"] = enter_lane
+	req["exit"] = exit_lane
+	req["respond_to"] = topic
+	return json.dumps(req)
 
-# get mqtt client
-client = prepare_client(bot_id)
+# create notify json
+def create_notify_msg():
+	msg = {}
+	msg["status"] = "crossed"
+	return json.dumps(msg)
 
-# create a dummy request to pass an intersection
-pass_req = create_pass_request(35, "yellow", "blue", get_topic(bot_id))
+# The callback for when a PUBLISH message is received from the server.
+def on_command(client, userdata, msg):
+	print msg.payload
+	# parse the payload
+	pass_comm = json.loads(msg.payload)
+	if pass_comm["command"] == "go":
+		command_q.put("GO_AT_RED")
+	else:
+		command_q.put("STOP_AT_RED")
 
-# request TIM to cross
-client.publish("tim/27606/request", json.dumps(pass_req))
-client.loop(2)
+# the driver function which controls the bot
+def driver(client, bot_id, exit_lane, command_q):
+	# AT_SRC, APPROACHING, WAITING, CROSSING, DEPARTING, AT_DEST
+	journey_state = "AT_SRC"
+	command = "STOP_AT_RED"
+	while (True):
+		if command_q.empty() == False:
+			command = command_q.get()
+		if journey_state == "AT_SRC":
+			print "AT_SRC"
+			journey_state = "APPROACHING"
+		elif journey_state == "APPROACHING":
+			print "APPROACHING"
+			# TODO : handle all colors and the distance lines
+			# request TIM to pass the intersection
+			pass_req = create_pass_request(35, "yellow", exit_lane, get_topic(bot_id))
+			client.publish("tim/27606/request", pass_req)
+			journey_state = "WAITING"
+		elif journey_state == "WAITING":
+			#print "WAITING"
+			if command == "STOP_AT_RED":
+				continue
+			journey_state = "CROSSING"
+		elif journey_state == "CROSSING":
+			print "CROSSING"
+			notify_msg = create_notify_msg()
+			client.publish("tim/27606/notify", notify_msg)
+			journey_state = "DEPARTING"
+		elif journey_state == "DEPARTING":
+			print "DEPARTING"
+			# TODO :  go for a certain distance (18 inches?)
+			journey_state = "AT_DEST"
+		elif journey_state == "AT_DEST":
+			print "AT_DEST"
+			# wait and disconnect after reaching the destination
+			client.loop(2)
+			client.disconnect()
+			break
 
-# Blocking call that processes network traffic, dispatches callbacks and
-# handles reconnecting.
-# Other loop*() functions are available that give a threaded interface and a
-# manual interface.
-client.loop_forever()
+# main function
+def main():
+	# process command line arguments
+	if len(sys.argv) != 3:
+		print "Usage : python tim.py <BOT_ID> <EXIT_LANE>"
+		exit(1)
+	bot_id = str(sys.argv[1])
+	exit_lane = str(sys.argv[2])
+	if exit_lane != "green" and exit_lane != "blue" and exit_lane != "yellow" and exit_lane != "magenta":
+		print "Invalid exit lane : green, blue, yellow, magenta"
+		exit(1)
+	
+	# get mqtt client
+	client = prepare_client(bot_id)
+	
+	# create a thread for the driver function
+	driver_thread = threading.Thread(target = driver, args = (client, bot_id, exit_lane, command_q))
+	driver_thread.start()
+	
+	# Blocking call that processes network traffic, dispatches callbacks and
+	# handles reconnecting.
+	# Other loop*() functions are available that give a threaded interface and a
+	# manual interface.
+	client.loop_forever()
+	
+	print "Destination reached. Terminating"
+
+if __name__ == "__main__":
+	main()
