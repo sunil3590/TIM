@@ -3,6 +3,7 @@
 import sys
 import paho.mqtt.client as paho
 import json
+import time
 
 # Create topic from bot_id
 def get_topic(postal):
@@ -23,16 +24,19 @@ def prepare_client(postal):
 def create_pass_response(command):
     res = {}
     res["command"] = command
-    return res
+    return json.dumps(res)
 
 # The callback for when a PUBLISH message is received from the server.
 def on_request(client, userdata, msg):
-    print msg.payload
-    # parse the payload
-    pass_req = json.loads(msg.payload)
-    # send the intial default command to STOP
-    pass_res = create_pass_response("STOP")
-    client.publish(pass_req["respond_to"], json.dumps(pass_res))
+	print msg.payload
+	# parse the payload
+	pass_req = json.loads(msg.payload)
+	# send the intial default command to STOP
+	pass_res = create_pass_response("STOP")
+	client.publish(pass_req["respond_to"], pass_res)
+	# send the GO command
+	pass_res = create_pass_response("GO")
+	client.publish(pass_req["respond_to"], pass_res)
 
 # main function
 def main():
