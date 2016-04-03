@@ -200,7 +200,7 @@ class color_senser(Adafruit_I2C):
 
 
 	# Use rgb_colors to guestimate what the color is from sensor values
-	def roadColor(self):
+	def readColor(self):
 		if len(self.rgb_colors) < 1:
 			print "No valid raw_rgb.txt"
 			return "No valid raw_rgb_txt"
@@ -220,7 +220,7 @@ class color_senser(Adafruit_I2C):
 			red_avg = float(sum( red_list)) / float(len(red_list))
 			green_avg = float(sum( green_list)) / float(len(green_list))
 			blue_avg = float(sum( blue_list)) / float(len(blue_list))
-
+			diff = {}
 			for color,vals in self.rgb_colors.items():
 				diff[color] = sum(map(abs, map(sub, vals, [red_avg,green_avg,blue_avg])))
                         return min(diff, key=diff.get)
