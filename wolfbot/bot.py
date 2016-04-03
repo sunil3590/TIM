@@ -11,7 +11,7 @@ command_q = Queue.Queue() # STOP_AT_RED, GO_AT_RED
 
 # Create topic from bot_id
 def get_topic(bot_id):
-	return "tim/wolfbot/" + bot_id + "/command"
+	return "wolfbot/" + bot_id + "/command"
 
 # initialze a client and connect to the server
 def prepare_client(bot_id):
@@ -33,12 +33,18 @@ def create_pass_request(speed, enter_lane, exit_lane, topic):
 	req["respond_to"] = topic
 	return json.dumps(req)
 
+# create notify json
+def create_notify_msg():
+	msg = {}
+	msg["status"] = "crossed"
+	return json.dumps(msg)
+
 # The callback for when a PUBLISH message is received from the server.
 def on_command(client, userdata, msg):
 	print msg.payload
 	# parse the payload
 	pass_comm = json.loads(msg.payload)
-	if pass_comm["command"] == "GO":
+	if pass_comm["command"] == "go":
 		command_q.put("GO_AT_RED")
 	else:
 		command_q.put("STOP_AT_RED")
@@ -68,6 +74,8 @@ def driver(client, bot_id, exit_lane, command_q):
 			journey_state = "CROSSING"
 		elif journey_state == "CROSSING":
 			print "CROSSING"
+			notify_msg = create_notify_msg()
+			client.publish("tim/27606/notify", notify_msg)
 			journey_state = "DEPARTING"
 		elif journey_state == "DEPARTING":
 			print "DEPARTING"
