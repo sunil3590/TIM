@@ -17,7 +17,6 @@ ir.set_thresh(0.5)
 
 print "batt voltage: " + str(w.battery.voltage() ) + "\n"
 
-current_dir = 'left'
 
 def switch_dir(old, speed):
         if old == 'left':
@@ -38,34 +37,51 @@ def rot_line():
         while(1):
                 t0 = time()
                 w.rotate( theta_l[dr] )
-                while ir.travel_val() < ir.thresh:
-                        print ir.travel_val()
+                while ir.travel_val() < ir.get_thresh():
+#                        print ir.travel_val()
                         if (time()-t0) > (tw*td) :
                                 break
                 w.rotate(0)
                 tot += tw*td
                 tw += 1
                 dr = (dr+1)%2
-                if ir.travel_val() >= ir.thresh:
-                        print tw
-                        print tot
+                if ir.travel_val() >= ir.get_thresh():
+#                        print tw
+#                        print tot
                         return
 
 
-drive_speed = 50
+position = {'count':0, 'status': 'on_white'}
 
-t_end = time() + 60*2   # 2 mins
-current_dir = switch_dir( current_dir, drive_speed) #start moving
-black_check = 0		#seen black yet? don't change dir
+drive_speed = 55
 
-#while time() < t_end:
-for x in range(20):      #approx 20s
-	if ir.travel_val() >= ir.thresh:       
+t0 = time()
+tend = 20	#max runtime in seconds
+while 1:
+	if (time() - t0) > tend:
+		print "Finished Runtime"
+		break
+
+	if ir.travel_val() >= ir.get_thresh():       
 		w.move(0, drive_speed)
 	else:
 		rot_line()
 
-	sleep(0.2)
+	#print ir.pos_val()
+	if (ir.pos_val() >= ir.get_thresh()) and\
+		 (position['status'] == 'on_white'):
+		position['status'] = 'on_black'
+		position['count'] += 1
+
+	if (ir.pos_val() < ir.get_thresh()) and \
+		 (position['status'] == 'on_black'):
+		position['status'] = 'on_white'
+		print position['count']
+
+
+
+	sleep(0.1)
+
 
 w.move(0,0)
 
