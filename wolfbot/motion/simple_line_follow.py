@@ -1,4 +1,4 @@
-mport sys
+import sys
 sys.path.append('/wolfbot/agent')
 import wolfbot as wb
 from time import time
@@ -25,13 +25,14 @@ drive_speed = 45
 
 t_end = time() + 60*2	# 2 mins
 current_dir = switch_dir( current_dir, drive_speed) #start moving
-while time() < t_end:
-	
+#while time() < t_end:
+for x in range(20)	#approx 20s
 	if ir.travel_is_white() :
 		current_dir = switch_dir(current_dir, drive_speed)
 		print current_dir
 
 	sleep(1)
 
+w.move(0,0)
 
 
