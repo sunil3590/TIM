@@ -30,18 +30,18 @@ drive_speed = 50
 
 t_end = time() + 60*2   # 2 mins
 current_dir = switch_dir( current_dir, drive_speed) #start moving
-black_check = 0         #seen black yet? don't change dir
+black_check = 0		#seen black yet? don't change dir
 
 #while time() < t_end:
 for x in range(15):      #approx 20s
         print "Is White: " + str(ir.travel_is_white())
 
-        if ir.travel_is_white() and black_check :
+	if ir.travel_is_white() and black_check :
                 current_dir = switch_dir(current_dir, drive_speed)
                 print "Dir : " + current_dir
-                black_check = 0
-        else:
-                black_check = 1
+		black_check = 0
+	else:
+		black_check = 1
 
         sleep(0.1)
 
