@@ -97,7 +97,7 @@ class color_senser(Adafruit_I2C):
 		rgb_colors = {}
 		self.rgb_colors = {}
 		try:
-			fc = open("raw_rgb.txt",'r')
+			fc = open("/boot/uboot/tim_code/sensors/raw_rgb.txt",'r')
 		except IOError:
 			print "No raw_rgb.txt"
 			return
