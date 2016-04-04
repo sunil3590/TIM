@@ -5,6 +5,7 @@ import paho.mqtt.client as paho
 import json
 import time
 import Queue
+from time import gmtime, strftime
 
 # Global queue to hold requests for intersection
 request_q = Queue.Queue()
@@ -38,7 +39,7 @@ def create_pass_response(command):
 
 # The callback for when a request message is received
 def on_request(client, userdata, msg):
-	print msg.payload
+	print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + msg.payload)
 	# parse the payload
 	pass_req = json.loads(msg.payload)
 	# send the intial default command to STOP
