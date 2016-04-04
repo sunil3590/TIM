@@ -52,6 +52,7 @@ def on_command(client, userdata, msg):
 # the driver function which controls the bot.
 #Argument : enter_lane is for simulation. In real world sensor will read enter_lane inside this function
 def driver(client, bot_id, exit_lane, command_q, enter_lane):
+	bot_id = str(bot_id)
 	#journey_state : AT_SRC, APPROACHING, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
 	command = "STOP_AT_RED"
