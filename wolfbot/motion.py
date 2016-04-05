@@ -8,7 +8,7 @@ import threading
 try:
 	sys.path.append('/wolfbot/agent')
 	import wolfbot as wb
-	sys.path.append('/boot/uboot/tim_code/sensors/')
+#	sys.path.append('/boot/uboot/tim_code/sensors/')
 	from ir_ain import IR_AIN
 	valid_wb = True
 except:
@@ -20,8 +20,8 @@ class motion(object):
 	def __init__(self):
 		if valid_wb:
 			#create ir travel object to be used for motion.start()
-			self.ir = IR_AIN()
-			self.w = wb()
+			self.ir = IR_AIN(0)  #travel ir on ADC0 for bot 10
+			self.w = wb.wolfbot()
 		else:
 			print "Running Motion with fake data"
 	
@@ -89,10 +89,10 @@ class motion(object):
 		if valid_wb:
 			drive_speed = 55
 			while not self.stop_signal:
-				if self.ir.travel_val() >= self.ir.get_thresh():
+				if self.ir.val() >= self.ir.get_thresh():
 					self.w.move(0, drive_speed)
 				else:
-					__rot_line()
+					self.__rot_line()
 				sleep(0.1)
 		else: #do nothing but simulate thread
 			t = 0
@@ -114,15 +114,15 @@ class motion(object):
 		while(1):
 			t0 = time()
 			self.w.rotate( theta_l[dr] )
-			while ir.travel_val() < ir.get_thresh():
+			while ir.val() < ir.get_thresh():
 	#                        print ir.travel_val()
 				if (time()-t0) > (tw*td) :
 					break
-			w.rotate(0)
+			self.w.rotate(0)
 			tot += tw*td
 			tw += 1
 			dr = (dr+1)%2
-			if ir.travel_val() >= ir.get_thresh():
+			if ir.val() >= ir.get_thresh():
 	#                        print tw
 	#                        print tot
 				return
@@ -137,6 +137,8 @@ def main():
 		print "Error in creating Motion object"
 		exit(1)
 	bot_mot.start()
+	print "Test IR: " + str(bot_mot.ir.val())
+
 	sleep(5)
 	bot_mot.stop()
 	bot_mot.follow_thread.join()
