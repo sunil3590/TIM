@@ -14,15 +14,15 @@ def get_topic(bot_id):
 	return "wolfbot/" + bot_id + "/command"
 
 # initialze a client and connect to the server
-def prepare_client(bot_id):
-	client = paho.Client(client_id="bot_" + bot_id)
-	client.on_message = on_command
-	client.connect(host="localhost", port=1883, keepalive=60)
+def prepare_mqttc(bot_id):
+	mqttc = paho.Client(client_id="bot_" + bot_id)
+	mqttc.on_message = on_command
+	mqttc.connect(host="localhost", port=1883, keepalive=60)
 	# TOPIC to subscribe to
 	topic = get_topic(bot_id)
 	print topic
-	client.subscribe(topic)
-	return client
+	mqttc.subscribe(topic)
+	return mqttc
 
 # create request json
 def create_pass_request(speed, enter_lane, exit_lane, topic):
@@ -40,7 +40,7 @@ def create_notify_msg():
 	return json.dumps(msg)
 
 # The callback for when a PUBLISH message is received from the server.
-def on_command(client, userdata, msg):
+def on_command(mqttc, userdata, msg):
 	print msg.payload
 	# parse the payload
 	pass_comm = json.loads(msg.payload)
@@ -50,7 +50,7 @@ def on_command(client, userdata, msg):
 		command_q.put("STOP_AT_RED")
 
 # the driver function which controls the bot.
-def driver(client, bot_id, entry_lane, exit_lane, command_q):
+def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 	bot_id = str(bot_id)
 	#journey_state : AT_SRC, APPROACHING, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
@@ -66,7 +66,7 @@ def driver(client, bot_id, entry_lane, exit_lane, command_q):
 			# TODO : handle all colors and the distance lines
 			# request TIM to pass the intersection
 			pass_req = create_pass_request(35, entry_lane, exit_lane, get_topic(bot_id))
-			client.publish("tim/27606/request", pass_req)
+			mqttc.publish("tim/27606/request", pass_req)
 			journey_state = "WAITING"
 		elif journey_state == "WAITING":
 			# print "WAITING"
@@ -76,7 +76,7 @@ def driver(client, bot_id, entry_lane, exit_lane, command_q):
 		elif journey_state == "CROSSING":
 			# print "CROSSING"
 			notify_msg = create_notify_msg()
-			client.publish("tim/27606/notify", notify_msg)
+			mqttc.publish("tim/27606/notify", notify_msg)
 			journey_state = "DEPARTING"
 		elif journey_state == "DEPARTING":
 			# print "DEPARTING"
@@ -85,8 +85,8 @@ def driver(client, bot_id, entry_lane, exit_lane, command_q):
 		elif journey_state == "AT_DEST":
 			# print "AT_DEST"
 			# wait and disconnect after reaching the destination
-			client.loop(2)
-			client.disconnect()
+			mqttc.loop(2)
+			mqttc.disconnect()
 			break
 
 # main function
@@ -107,17 +107,17 @@ def main():
 		exit(1)
 	
 	# get mqtt client
-	client = prepare_client(bot_id)
+	mqttc = prepare_mqttc(bot_id)
 	
 	# create a thread for the driver function
-	driver_thread = threading.Thread(target = driver, args = (client, bot_id, entry_lane, exit_lane, command_q))
+	driver_thread = threading.Thread(target = driver, args = (mqttc, bot_id, entry_lane, exit_lane, command_q))
 	driver_thread.start()
 	
 	# Blocking call that processes network traffic, dispatches callbacks and
 	# handles reconnecting.
 	# Other loop*() functions are available that give a threaded interface and a
 	# manual interface.
-	client.loop_forever()
+	mqttc.loop_forever()
 	
 	print "Destination reached. Terminating"
 
