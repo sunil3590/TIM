@@ -3,6 +3,8 @@
 import sys
 from time import time
 from time import sleep
+import threading
+
 try:
 	sys.path.append('/wolfbot/agent')
 	import wolfbot as wb
@@ -13,7 +15,6 @@ except:
 	print "Not on wolfbot, faking data"
 	valid_wb = False
 
-
 class motion(object):
 
 	def __init__(self):
@@ -23,8 +24,8 @@ class motion(object):
 			self.w = wb()
 		else:
 			print "Running Motion with fake data"
-
-		self.stop_signal = False	
+	
+		self.stop_signal = False
 		self.valid = True
 
 
@@ -32,14 +33,13 @@ class motion(object):
 	#return thread object so it can be exited by motion.stop()
 	def start(self):
 		#start line following thread here
-		lf_thread = "TODO"
-		self.start_thread = lf_thread
+		self.follow_thread = threading.Thread(target = self.__follower)
+		self.follow_thread.start()
 
 
 	# ayschronously stops the line follow thread	
 	def stop(self):
-		self.start_thread = "STOP_TODO"
-
+		self.stop_signal = True
 
 
 	# make a hardcoded left turn
@@ -84,32 +84,27 @@ class motion(object):
 			print "Turning Right!"
 
 
-
-
 	# thread code that handels following line
-	def follower(self):
+	def __follower(self):
 		if valid_wb:
 			drive_speed = 55
 			while not self.stop_signal:
 				if self.ir.travel_val() >= self.ir.get_thresh():
 					self.w.move(0, drive_speed)
 				else:
-					rot_line()
+					__rot_line()
 				sleep(0.1)
-
-
 		else: #do nothing but simulate thread
-			t=0
+			t = 0
 			while not self.stop_signal:
 				sleep(1)
-				t +=1
-			print "follower ran " +str(t) + "s"
-
+				t += 1
+				print str(t) + "sec"
 
 
 	# funciton for follower() to use
 	# use rotating movements to find line
-	def rot_line(self):
+	def __rot_line(self):
 		ir = self.ir
 		dr = 1
 		theta_l = [-25, 23]     #bot 14 drifts left, need more power on right swing
@@ -133,15 +128,20 @@ class motion(object):
 				return
 
 
-
-
 # main function to test class
 def main():
 	bot_mot = motion()
 	if bot_mot.valid :
 		print "Working motion object created"
-
+	else:
+		print "Error in creating Motion object"
+		exit(1)
+	bot_mot.start()
+	sleep(5)
+	bot_mot.stop()
+	bot_mot.follow_thread.join()
+	bot_mot.cross_left()
+	print "At your destination"
 
 if __name__ == "__main__":
 	main()
-
