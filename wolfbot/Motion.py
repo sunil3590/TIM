@@ -15,7 +15,7 @@ except:
 	print "Not on wolfbot, faking data"
 	valid_wb = False
 
-class motion(object):
+class Motion(object):
 
 	def __init__(self):
 		if valid_wb:
@@ -40,6 +40,7 @@ class motion(object):
 	# ayschronously stops the line follow thread	
 	def stop(self):
 		self.stop_signal = True
+		self.follow_thread.join()
 
 
 	# make a hardcoded left turn
@@ -130,7 +131,7 @@ class motion(object):
 
 # main function to test class
 def main():
-	bot_mot = motion()
+	bot_mot = Motion()
 	if bot_mot.valid :
 		print "Working motion object created"
 	else:
@@ -139,7 +140,6 @@ def main():
 	bot_mot.start()
 	sleep(5)
 	bot_mot.stop()
-	bot_mot.follow_thread.join()
 	bot_mot.cross_left()
 	print "At your destination"
 
