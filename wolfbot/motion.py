@@ -32,6 +32,7 @@ class Motion(object):
 	#creates a thread to handle line following
 	#return thread object so it can be exited by motion.stop()
 	def start(self):
+		self.stop_signal = False
 		#start line following thread here
 		self.follow_thread = threading.Thread(target = self.__follower)
 		self.follow_thread.start()
@@ -138,9 +139,12 @@ def main():
 		print "Error in creating Motion object"
 		exit(1)
 	bot_mot.start()
-	sleep(5)
+	sleep(3)
 	bot_mot.stop()
 	bot_mot.cross_left()
+	bot_mot.start()
+	sleep(3)
+	bot_mot.stop()
 	print "At your destination"
 
 if __name__ == "__main__":
