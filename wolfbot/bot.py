@@ -20,7 +20,7 @@ def prepare_client(bot_id):
 	client.connect(host="localhost", port=1883, keepalive=60)
 	# TOPIC to subscribe to
 	topic = get_topic(bot_id)
-	#print topic
+	print topic
 	client.subscribe(topic)
 	return client
 
@@ -41,7 +41,7 @@ def create_notify_msg():
 
 # The callback for when a PUBLISH message is received from the server.
 def on_command(client, userdata, msg):
-	#print msg.payload
+	print msg.payload
 	# parse the payload
 	pass_comm = json.loads(msg.payload)
 	if pass_comm["command"] == "go":
@@ -50,8 +50,7 @@ def on_command(client, userdata, msg):
 		command_q.put("STOP_AT_RED")
 
 # the driver function which controls the bot.
-#Argument : enter_lane is for simulation. In real world sensor will read enter_lane inside this function
-def driver(client, bot_id, exit_lane, command_q, enter_lane):
+def driver(client, bot_id, entry_lane, exit_lane, command_q):
 	bot_id = str(bot_id)
 	#journey_state : AT_SRC, APPROACHING, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
@@ -60,31 +59,31 @@ def driver(client, bot_id, exit_lane, command_q, enter_lane):
 		if command_q.empty() == False:
 			command = command_q.get()
 		if journey_state == "AT_SRC":
-			#print "AT_SRC"
+			# print "AT_SRC"
 			journey_state = "APPROACHING"
 		elif journey_state == "APPROACHING":
-			#print "APPROACHING"
+			# print "APPROACHING"
 			# TODO : handle all colors and the distance lines
 			# request TIM to pass the intersection
-			pass_req = create_pass_request(35, enter_lane, exit_lane, get_topic(bot_id))
+			pass_req = create_pass_request(35, entry_lane, exit_lane, get_topic(bot_id))
 			client.publish("tim/27606/request", pass_req)
 			journey_state = "WAITING"
 		elif journey_state == "WAITING":
-			#print "WAITING"
+			# print "WAITING"
 			if command == "STOP_AT_RED":
 				continue
 			journey_state = "CROSSING"
 		elif journey_state == "CROSSING":
-			#print "CROSSING"
+			# print "CROSSING"
 			notify_msg = create_notify_msg()
 			client.publish("tim/27606/notify", notify_msg)
 			journey_state = "DEPARTING"
 		elif journey_state == "DEPARTING":
-			#print "DEPARTING"
+			# print "DEPARTING"
 			# TODO :  go for a certain distance (18 inches?)
 			journey_state = "AT_DEST"
 		elif journey_state == "AT_DEST":
-			#print "AT_DEST"
+			# print "AT_DEST"
 			# wait and disconnect after reaching the destination
 			client.loop(2)
 			client.disconnect()
@@ -93,21 +92,25 @@ def driver(client, bot_id, exit_lane, command_q, enter_lane):
 # main function
 def main():
 	# process command line arguments
-	if len(sys.argv) != 3:
-		print "Usage : python tim.py <BOT_ID> <EXIT_LANE>"
+	if len(sys.argv) != 4:
+		print "Usage : python tim.py <BOT_ID> <ENTRY_LANE> <EXIT_LANE>"
 		exit(1)
 
-	bot_id = str(sys.argv[1])
-	exit_lane = str(sys.argv[2])
-	if exit_lane != "green" and exit_lane != "blue" and exit_lane != "yellow" and exit_lane != "magenta":
-		print "Invalid exit lane : green, blue, yellow, magenta"
+	bot_id = sys.argv[1]
+	entry_lane = int(sys.argv[2])
+	exit_lane = int(sys.argv[3])
+	if exit_lane > 4 or exit_lane < 1:
+		print "Invalid exit lane : 1 to 4"
+		exit(1)
+	if entry_lane > 4 or entry_lane < 1:
+		print "Invalid exit lane : 1 to 4"
 		exit(1)
 	
 	# get mqtt client
 	client = prepare_client(bot_id)
 	
 	# create a thread for the driver function
-	driver_thread = threading.Thread(target = driver, args = (client, bot_id, exit_lane, command_q))
+	driver_thread = threading.Thread(target = driver, args = (client, bot_id, entry_lane, exit_lane, command_q))
 	driver_thread.start()
 	
 	# Blocking call that processes network traffic, dispatches callbacks and
