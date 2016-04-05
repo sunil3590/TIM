@@ -3,8 +3,9 @@ sys.path.append('/wolfbot/agent')
 import wolfbot as wb
 from time import time
 from time import sleep
-sys.path.append('../sensors/')
+sys.path.append('/boot/uboot/tim_code/sensors/')
 from ir_ain import IR_AIN
+import color_sensor_ISL29125
 
 w = wb.wolfbot()
 w.move(0,0)
@@ -14,17 +15,15 @@ sleep(5)
 ir = IR_AIN()
 ir.set_thresh(0.5)
 
+cs = color_sensor_ISL29125.color_senser(1)
+if cs.valid_init:
+        print "Valid color sensor"
+else :
+        print "Color Sensor invalid"
+
 
 print "batt voltage: " + str(w.battery.voltage() ) + "\n"
-
-
-def switch_dir(old, speed):
-        if old == 'left':
-                w.move( 3, speed)
-                return 'right'
-        else :
-                w.move( 357, speed)
-                return 'left'
+print "Guessed Color is " + cs.readColor() + "\n"
 
 
 # use rotating movements to find line
