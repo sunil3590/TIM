@@ -11,7 +11,7 @@ import numpy as np
 def generateSleepValues():
 	values = []
 	sleep = []
-        values = np.random.normal(60,20,50)
+	values = np.random.normal(60,20,50)
 	values.sort()
 #	print(values)
 
@@ -37,7 +37,7 @@ def generateTrafficPerLane(enterLane, sleep, x):
 		bot_id = x+50
 	elif enterLane == "red":
 		bot_id = x+100
-        else:
+	else:
 		bot_id = x+150
 	enter_lane = enterLane
 	exit_lane = "green"
@@ -46,7 +46,7 @@ def generateTrafficPerLane(enterLane, sleep, x):
 	client = bot.prepare_client(str(bot_id))
 	
 	# create a thread for the driver function
-	driver_thread = threading.Thread(target = bot.driver, args = (client, bot_id, exit_lane, bot.command_q, enter_lane))
+	driver_thread = threading.Thread(target = bot.driver, args = (client, bot_id, enter_lane, exit_lane, bot.command_q))
 	driver_thread.start()
 	client.loop_forever()
 	
