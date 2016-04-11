@@ -62,6 +62,11 @@ def on_command(mqttc, userdata, msg):
 
 # the driver function which controls the bot.
 def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
+	# check entry and exit lanes
+	if entry_lane < 1 or entry_lane > 4 or exit_lane < 1 or exit_lane > 4 or entry_lane == exit_lane:
+		print "Invalid entry or exit lane"
+		return
+
 	# motion object to achieve line following
 	bot_motion = motion.Motion()
 	if bot_motion.valid == False:
@@ -119,8 +124,21 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 		elif journey_state == "CROSSING":
 			# moving through the intersection
 			# TODO : notify that the bot has started to cross
-			# TODO : left / right / straight logic
-			bot_motion.cross_left()
+			# left / right / straight logic
+			diff = abs(entry_lane - exit_lane)
+			if diff % 2 == 0:
+				bot_motion.cross_straight()
+			else:
+				if entry_lane + exit_lane == 5 and abs(entry_lane - exit_lane) == 3:
+					if entry_lane < exit_lane:
+						bot_motion.cross_right()
+					else:
+						bot_motion.cross_left()
+				else:
+					if entry_lane > exit_lane:
+						bot_motion.cross_right()
+					else:
+						bot_motion.cross_left()
 			journey_state = "DEPARTING"
 			
 		elif journey_state == "DEPARTING":
