@@ -3,7 +3,7 @@ from color_sensor_ISL2915 import color_senser
 
 
 
-class sensors(object):
+class Sensor(object):
 
 	def __init__(self):
 		self.ir = IR_AIN( 1 )   # ADC1 is position (left) ir on bot 10
