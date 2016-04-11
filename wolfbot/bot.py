@@ -6,6 +6,7 @@ import json
 import threading
 import Queue
 import motion
+import sensor
 from time import sleep
 
 # queue of commands for inter thread communication
@@ -68,6 +69,9 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 		mqttc.disconnect()
 		return
 	
+	# sensor object to read markings on road
+	bot_sensor = sensor.Sensor()
+
 	#journey_state : AT_SRC, APPROACHING, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
 	
@@ -89,7 +93,8 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 		elif journey_state == "APPROACHING":
 			# moving on the entry lane up until red line, also make request to TIM
 			# keep waiting till first black line
-			sleep(2)
+			if bot_sensor.is_Black() == False:
+				continue
 			print "Black line"
 			
 			# request TIM to pass the intersection
@@ -97,8 +102,11 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 			mqttc.publish("tim/27606/request", pass_req)
 			
 			# keep waiting till you come across red line
-			sleep(5)
+			if bot_sensor.is_Red() == False:
+				continue
 			print "Red line"
+
+			# stop the bot and go to wait state
 			bot_motion.stop()
 			journey_state = "WAITING"
 			
@@ -120,11 +128,13 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 			bot_motion.start()
 			
 			# wait for 2 seconds before notifying that the junction is empty
+			# TODO :  caliberate
 			sleep(2)
 			notify_msg = create_notify_msg()
 			mqttc.publish("tim/27606/notify", notify_msg)
 			
 			# travel for 3 more sec on the exit lane bofore stopping
+			# TODO :  caliberate
 			sleep(3) # sleep because there is nothing else to do
 			journey_state = "AT_DEST"
 			
