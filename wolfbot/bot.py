@@ -77,7 +77,7 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 	# sensor object to read markings on road
 	bot_sensor = sensor.Sensor()
 
-	#journey_state : AT_SRC, APPROACHING, WAITING, CROSSING, DEPARTING, AT_DEST
+	#journey_state : AT_SRC, NEED_BLACK, REQUEST, NEED_RED, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
 	
 	# by default, stop at red
@@ -93,24 +93,26 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 		if journey_state == "AT_SRC":
 			# at the start of the entry lane
 			bot_motion.start()
-			journey_state = "APPROACHING"
+			journey_state = "NEED_BLACK"
 			
-		elif journey_state == "APPROACHING":
+		elif journey_state == "NEED_BLACK":
 			# moving on the entry lane up until red line, also make request to TIM
 			# keep waiting till first black line
 			if bot_sensor.is_Black() == False:
 				continue
-			print "Black line"
-			
+			journey_state = "REQUEST"
+
+		elif journey_state == "REQUEST":
 			# request TIM to pass the intersection
 			pass_req = create_pass_request(35, entry_lane, exit_lane, get_topic(bot_id))
 			mqttc.publish("tim/27606/request", pass_req)
-			
+			journey_state = "NEED_RED"
+
+		elif journey_state == "NEED_RED"
 			# keep waiting till you come across red line
 			if bot_sensor.is_Red() == False:
 				continue
-			print "Red line"
-
+			
 			# stop the bot and go to wait state
 			bot_motion.stop()
 			journey_state = "WAITING"
