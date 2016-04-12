@@ -49,7 +49,7 @@ class Motion(object):
 		if valid_wb: #TODO motion left
 			self.w.move(0,50)
 			sleep(2)
-			self.w.rotate(-30)
+			self.w.rotate(30)	## pos ccw left turn
 			sleep(1)
 			self.w.move(0,50)
 			sleep(2)
@@ -77,7 +77,7 @@ class Motion(object):
 		if valid_wb: #TODO motion right
 			self.w.move(0,50)
 			sleep(2)
-			self.w.rotate(-30)
+			self.w.rotate(-30)	##neg cw right turn
 			sleep(1)
 			self.w.move(0,50)
 			sleep(2)
