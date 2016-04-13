@@ -17,7 +17,7 @@ def get_topic(bot_id):
 	return "wolfbot/" + bot_id + "/command"
 
 # initialze a client and connect to the server
-def prepare_mqttc(mqtt_host, bot_id):
+def prepare_mqttc(mqtt_host, bot_id, mosqt_port):
 	# create a mqtt client
 	mqttc = paho.Client(client_id="bot_" + bot_id)
 	mqttc.on_message = on_command
@@ -191,7 +191,7 @@ def main():
 		exit(1)
 	
 	# get mqtt client
-	mqttc = prepare_mqttc(mqtt_host, bot_id)
+	mqttc = prepare_mqttc(mqtt_host, bot_id, mosqt_port)
 	
 	# create a thread for the driver function
 	driver_thread = threading.Thread(target = driver, args = (mqttc, bot_id, entry_lane, exit_lane, command_q))
