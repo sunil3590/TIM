@@ -95,12 +95,14 @@ class Motion(object):
 				else:
 					self.__rot_line()
 				sleep(0.1)
+			self.w.move(0, 0)
 		else: #do nothing but simulate thread
 			t = 0
 			while not self.stop_signal:
 				sleep(1)
 				t += 1
 				print str(t) + "sec"
+		print "Follower thread returning"
 
 
 	# funciton for follower() to use
@@ -137,19 +139,23 @@ def main():
 	else:
 		print "Error in creating Motion object"
 		exit(1)
+	
 	# time to re align the wolfbot
+	print "Realign if there was a jerk"
 	sleep(5)
+
+	# move for a few seconds
+	print "Start moving"
 	bot_mot.start()
+	sleep(2)
 
 	print "Test IR: " + str(bot_mot.ir.val())
 
-	sleep(5)
+	# stop and turn left
 	bot_mot.stop()
+	print "Stopped"
 	bot_mot.cross_left()
-	bot_mot.start()
-	sleep(3)
-	bot_mot.stop()
-	print "At your destination"
+	print "Turned Left"
 
 if __name__ == "__main__":
 	main()
