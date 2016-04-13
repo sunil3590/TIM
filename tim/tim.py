@@ -21,10 +21,10 @@ def get_notify_topic(j_id):
 
 
 # initialze a client and connect to the server
-def prepare_mqttc(mqtt_host, j_id):
+def prepare_mqttc(mqtt_host, j_id, mqtt_port):
 	# initialze a client and connect to the server
 	mqttc = paho.Client(client_id="tim_" + j_id)
-	mqttc.connect(host=mqtt_host, port=1883, keepalive=60)
+	mqttc.connect(host=mqtt_host, port=mqtt_port, keepalive=60)
 	
 	# subscribe to topics
 	req_topic = get_request_topic(j_id)
@@ -81,14 +81,19 @@ def on_notify(mqttc, userdata, msg):
 # main function
 def main():
 	# process command line arguments
-	if len(sys.argv) != 3:
+	if len(sys.argv) < 3:
 		print("Usage : python tim.py <JUNCTION_ID> <MOSQUITTO_HOST>")
 		exit(1)
 	j_id = sys.argv[1]
 	mqtt_host = sys.argv[2]
 	
+	if( len(sys.argv) == 4):
+		mqtt_port = sys.argv[3]
+	else:
+		mqtt_port = 1883
+
 	# get a client
-	mqttc = prepare_mqttc(mqtt_host, j_id)
+	mqttc = prepare_mqttc(mqtt_host, j_id, mqtt_port)
 	
 	# Blocking call that processes network traffic, dispatches callbacks and
 	# handles reconnecting.
