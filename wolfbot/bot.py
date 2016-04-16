@@ -17,11 +17,11 @@ def get_topic(bot_id):
 	return "wolfbot/" + bot_id + "/command"
 
 # initialze a client and connect to the server
-def prepare_mqttc(mqtt_host, bot_id):
+def prepare_mqttc(mqtt_host, bot_id, mqtt_port):
 	# create a mqtt client
 	mqttc = paho.Client(client_id="bot_" + bot_id)
 	mqttc.on_message = on_command
-	mqttc.connect(host=mqtt_host, port=mosqt_port, keepalive=60)
+	mqttc.connect(host=mqtt_host, port=mqtt_port, keepalive=60)
 	
 	# subscribe to TOPIC
 	topic = get_topic(bot_id)
@@ -109,7 +109,7 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 		elif journey_state == "REQUEST":
 			# request TIM to pass the intersection
 			pass_req = create_pass_request(35, entry_lane, exit_lane, get_topic(bot_id))
-			mqttc.publish("tim/27606/request", pass_req)
+			mqttc.publish("tim/JID_1/request", pass_req)
 			journey_state = "NEED_RED"
 
 		elif journey_state == "NEED_RED":
@@ -155,7 +155,7 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 			# TODO :  caliberate
 			sleep(2)
 			notify_msg = create_notify_msg()
-			mqttc.publish("tim/27606/notify", notify_msg)
+			mqttc.publish("tim/JID_1/notify", notify_msg)
 			
 			# travel for 3 more sec on the exit lane bofore stopping
 			# TODO :  caliberate
@@ -173,8 +173,8 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 # main function
 def main():
 	# check usage
-	if len(sys.argv) != 6:
-		print "Usage : python tim.py <BOT_ID> <MOSQUITTO_HOST> <ENTRY_LANE> <EXIT_LANE> <MOSQUITTO_PORT>"
+	if len(sys.argv) != 5 and len(sys.argv) != 6:
+		print "Usage : python tim.py BOT_ID MOSQUITTO_HOST ENTRY_LANE EXIT_LANE <MOSQUITTO_PORT>"
 		exit(1)
 	
 	# process command line arguments
@@ -182,7 +182,10 @@ def main():
 	mqtt_host = sys.argv[2]
 	entry_lane = int(sys.argv[3])
 	exit_lane = int(sys.argv[4])
-	mosqt_port = sys.argv[5]
+	if(len(sys.argv) == 6):
+		mqtt_port = int(sys.argv[5])
+	else:
+		mqtt_port = 1883
 	if exit_lane > 4 or exit_lane < 1:
 		print "Invalid exit lane : 1 to 4"
 		exit(1)
@@ -191,7 +194,7 @@ def main():
 		exit(1)
 	
 	# get mqtt client
-	mqttc = prepare_mqttc(mqtt_host, bot_id)
+	mqttc = prepare_mqttc(mqtt_host, bot_id, mqtt_port)
 	
 	# create a thread for the driver function
 	driver_thread = threading.Thread(target = driver, args = (mqttc, bot_id, entry_lane, exit_lane, command_q))
