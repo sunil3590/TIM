@@ -6,7 +6,7 @@ import json
 import threading
 import Queue
 import motion
-#import sensor
+import sensor
 from time import sleep
 
 # queue of commands for inter thread communication
@@ -82,7 +82,7 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 	sleep(3)
 	
 	# sensor object to read markings on road
-	#bot_sensor = sensor.Sensor()
+	bot_sensor = sensor.Sensor()
 
 	#journey_state : AT_SRC, NEED_BLACK, REQUEST, NEED_RED, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
@@ -105,8 +105,8 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 		elif journey_state == "NEED_BLACK":
 			# moving on the entry lane up until red line, also make request to TIM
 			# keep waiting till first black line
-			#if bot_sensor.is_Black() == False:
-			#	continue
+			if bot_sensor.is_Black() == False:
+				continue
 			journey_state = "REQUEST"
 
 		elif journey_state == "REQUEST":
@@ -117,8 +117,8 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 
 		elif journey_state == "NEED_RED":
 			# keep waiting till you come across red line
-			#if bot_sensor.is_Red() == False:
-			#	continue
+			if bot_sensor.is_Red() == False:
+				continue
 			
 			# stop the bot and go to wait state
 			bot_motion.stop()
