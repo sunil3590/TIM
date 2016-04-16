@@ -6,7 +6,7 @@ import json
 import threading
 import Queue
 import motion
-import sensor
+#import sensor
 from time import sleep
 
 # queue of commands for inter thread communication
@@ -31,19 +31,29 @@ def prepare_mqttc(mqtt_host, bot_id, mqtt_port):
 	return mqttc
 
 # create request json
-def create_pass_request(speed, enter_lane, exit_lane, topic):
-	req = {}
-	req["speed"] = speed
-	req["enter"] = enter_lane
-	req["exit"] = exit_lane
-	req["respond_to"] = topic
-	
-	return json.dumps(req)
-
-# create notify json
-def create_notify_msg():
+def create_pass_request(bot_id, bot_type, enter_lane, exit_lane):
 	msg = {}
-	msg["status"] = "crossed"
+	msg["bot_id"] = bot_id
+	msg["bot_type"] = bot_type
+	msg["enter"] = enter_lane
+	msg["exit"] = exit_lane
+	msg["respond_to"] = get_topic(bot_id)
+	
+	return json.dumps(msg)
+
+# create crossing json
+def create_crossing_msg(bot_id):
+	msg = {}
+	msg["bot_id"] = bot_id
+	msg["status"] = "crossing"
+	
+	return json.dumps(msg)
+
+# create complete json
+def create_complete_msg(bot_id):
+	msg = {}
+	msg["bot_id"] = bot_id
+	msg["status"] = "complete"
 	
 	return json.dumps(msg)
 
@@ -61,7 +71,7 @@ def on_command(mqttc, userdata, msg):
 		command_q.put("STOP_AT_RED")
 
 # the driver function which controls the bot.
-def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
+def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 	# check entry and exit lanes
 	if entry_lane < 1 or entry_lane > 4 or exit_lane < 1 or exit_lane > 4 or entry_lane == exit_lane:
 		print "Invalid entry or exit lane"
@@ -79,7 +89,7 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 	sleep(3)
 	
 	# sensor object to read markings on road
-	bot_sensor = sensor.Sensor()
+	#bot_sensor = sensor.Sensor()
 
 	#journey_state : AT_SRC, NEED_BLACK, REQUEST, NEED_RED, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
@@ -102,20 +112,20 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 		elif journey_state == "NEED_BLACK":
 			# moving on the entry lane up until red line, also make request to TIM
 			# keep waiting till first black line
-			if bot_sensor.is_Black() == False:
-				continue
+			#if bot_sensor.is_Black() == False:
+			#	continue
 			journey_state = "REQUEST"
 
 		elif journey_state == "REQUEST":
 			# request TIM to pass the intersection
-			pass_req = create_pass_request(35, entry_lane, exit_lane, get_topic(bot_id))
-			mqttc.publish("tim/JID_1/request", pass_req)
+			pass_req = create_pass_request(bot_id, bot_type, entry_lane, exit_lane)
+			mqttc.publish("tim/jid_1/request", pass_req)
 			journey_state = "NEED_RED"
 
 		elif journey_state == "NEED_RED":
 			# keep waiting till you come across red line
-			if bot_sensor.is_Red() == False:
-				continue
+			#if bot_sensor.is_Red() == False:
+			#	continue
 			
 			# stop the bot and go to wait state
 			bot_motion.stop()
@@ -129,7 +139,9 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 			
 		elif journey_state == "CROSSING":
 			# moving through the intersection
-			# TODO : notify that the bot has started to cross
+			# notify that the bot has started to cross
+			crossing_msg = create_crossing_msg(bot_id)
+			mqttc.publish("tim/jid_1/crossing", crossing_msg)
 			# left / right / straight logic
 			diff = abs(entry_lane - exit_lane)
 			if diff % 2 == 0:
@@ -154,8 +166,8 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 			# wait for 2 seconds before notifying that the junction is empty
 			# TODO :  caliberate
 			sleep(2)
-			notify_msg = create_notify_msg()
-			mqttc.publish("tim/JID_1/notify", notify_msg)
+			complete_msg = create_complete_msg(bot_id)
+			mqttc.publish("tim/jid_1/complete", complete_msg)
 			
 			# travel for 3 more sec on the exit lane bofore stopping
 			# TODO :  caliberate
@@ -173,19 +185,23 @@ def driver(mqttc, bot_id, entry_lane, exit_lane, command_q):
 # main function
 def main():
 	# check usage
-	if len(sys.argv) != 5 and len(sys.argv) != 6:
-		print "Usage : python tim.py BOT_ID MOSQUITTO_HOST ENTRY_LANE EXIT_LANE <MOSQUITTO_PORT>"
+	if len(sys.argv) != 6 and len(sys.argv) != 7:
+		print "Usage : python tim.py BOT_ID BOT_TYPE ENTRY_LANE EXIT_LANE MOSQUITTO_HOST <MOSQUITTO_PORT>"
 		exit(1)
 	
 	# process command line arguments
 	bot_id = sys.argv[1]
-	mqtt_host = sys.argv[2]
+	bot_type = sys.argv[2]
 	entry_lane = int(sys.argv[3])
 	exit_lane = int(sys.argv[4])
-	if(len(sys.argv) == 6):
-		mqtt_port = int(sys.argv[5])
+	mqtt_host = sys.argv[5]
+	if(len(sys.argv) == 7):
+		mqtt_port = int(sys.argv[6])
 	else:
 		mqtt_port = 1883
+	if bot_type != "civilian" and bot_type != "ems":
+		print "Invalid bot type : civilian / ems"
+		exit(1)
 	if exit_lane > 4 or exit_lane < 1:
 		print "Invalid exit lane : 1 to 4"
 		exit(1)
@@ -197,7 +213,7 @@ def main():
 	mqttc = prepare_mqttc(mqtt_host, bot_id, mqtt_port)
 	
 	# create a thread for the driver function
-	driver_thread = threading.Thread(target = driver, args = (mqttc, bot_id, entry_lane, exit_lane, command_q))
+	driver_thread = threading.Thread(target = driver, args = (mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q))
 	driver_thread.start()
 	
 	# Blocking call that processes network traffic, dispatches callbacks and
