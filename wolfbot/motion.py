@@ -58,7 +58,6 @@ class Motion(object):
 			self.w.move( 0, 60 )
 			sleep( 1.5 )
 			self.w.move( 0, 0 )
-			print "Turned Left"
 		else:
 			print "Turning Left!"
 
@@ -102,7 +101,6 @@ class Motion(object):
 				sleep(1)
 				t += 1
 				print str(t) + "sec"
-		print "Follower thread returning"
 
 
 	# funciton for follower() to use

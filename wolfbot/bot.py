@@ -41,13 +41,6 @@ def create_pass_request(bot_id, bot_type, enter_lane, exit_lane):
 	
 	return json.dumps(msg)
 
-# create crossing json
-def create_crossing_msg(bot_id):
-	msg = {}
-	msg["bot_id"] = bot_id
-	msg["status"] = "crossing"
-	
-	return json.dumps(msg)
 
 # create complete json
 def create_complete_msg(bot_id):
@@ -138,10 +131,6 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			journey_state = "CROSSING"
 			
 		elif journey_state == "CROSSING":
-			# moving through the intersection
-			# notify that the bot has started to cross
-			crossing_msg = create_crossing_msg(bot_id)
-			mqttc.publish("tim/jid_1/crossing", crossing_msg)
 			# left / right / straight logic
 			diff = abs(entry_lane - exit_lane)
 			if diff % 2 == 0:
