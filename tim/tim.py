@@ -9,16 +9,12 @@ import Queue
 # which algo should TIM run?
 algo = "Q" # just a random initialization, will be over written
 
-# Global queue to hold requests for intersection
 # used when algo is Q
 request_q = Queue.Queue()
 # used when algo is PQ
 lane_pq = Queue.PriorityQueue()
-lane_pq.put((0, 1, 1)) # (priority, secondary priority, lane id)
-lane_pq.put((0, 2, 2))
-lane_pq.put((0, 3, 3))
-lane_pq.put((0, 4, 4))
 lane_request_qs = [Queue.Queue() for i in range(4)]
+# used to store details about the bot that is currently crossing
 cur_crossing = -1
 
 
@@ -76,8 +72,15 @@ def send_go_top_q(mqttc):
 # add a req to priority queue algo data structs
 def add_req_to_pq(req):
 	global lane_pq
+
 	# add request to the lanes req queue
 	lane_request_qs[req["enter"] - 1].put(req)
+
+	# priority of bot
+	if req["bot_type"] == "ems":
+		bot_priority = 100
+	else:
+		bot_priority = 1
 
 	# update priority of lanes
 	# TODO : deal with : busy lane hogging the junction
@@ -85,7 +88,7 @@ def add_req_to_pq(req):
 	while lane_pq.empty() == False:
 		lane = lane_pq.get()
 		if lane[2] == req["enter"]:
-			new_lane_pq.put((lane[0] - 1, lane[1], lane[2]))
+			new_lane_pq.put((lane[0] - bot_priority, lane[1], lane[2]))
 		else:
 			new_lane_pq.put(lane)
 	lane_pq = new_lane_pq
@@ -104,12 +107,18 @@ def send_go_top_pq(mqttc):
 	# get the top request from queue
 	req = lane_req_q.get()
 
+	# priority of bot
+	if req["bot_type"] == "ems":
+		bot_priority = 100
+	else:
+		bot_priority = 1
+
 	# send the GO command
 	mqttc.publish(req["respond_to"], make_response("go"))
 
 	# update priority of lanes
 	# TODO : deal with : busy lane hogging the junction
-	lane_pq.put((lane[0] + 1, lane[1], lane[2]))
+	lane_pq.put((lane[0] + bot_priority, lane[1], lane[2]))
 
 	# return the bot id as the current owner of junction
 	return req["bot_id"]
@@ -177,6 +186,12 @@ def main():
 		mqtt_port = int(sys.argv[3])
 	else:
 		mqtt_port = 1883
+
+	# (priority, secondary priority, lane id)
+	lane_pq.put((0, 1, 1))
+	lane_pq.put((0, 2, 2))
+	lane_pq.put((0, 3, 3))
+	lane_pq.put((0, 4, 4))
 
 	# get a client
 	mqttc = prepare_mqttc(mqtt_host, "jid_1", mqtt_port)

@@ -43,9 +43,10 @@ def create_pass_request(bot_id, bot_type, enter_lane, exit_lane):
 
 
 # create complete json
-def create_complete_msg(bot_id):
+def create_complete_msg(bot_id, bot_type):
 	msg = {}
 	msg["bot_id"] = bot_id
+	msg["bot_type"] = bot_type
 	msg["status"] = "complete"
 	
 	return json.dumps(msg)
@@ -155,7 +156,7 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			# wait for 2 seconds before notifying that the junction is empty
 			# TODO :  caliberate
 			sleep(2)
-			complete_msg = create_complete_msg(bot_id)
+			complete_msg = create_complete_msg(bot_id, bot_type)
 			mqttc.publish("tim/jid_1/complete", complete_msg)
 			
 			# travel for 3 more sec on the exit lane bofore stopping
