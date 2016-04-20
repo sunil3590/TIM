@@ -177,7 +177,7 @@ class color_senser(Adafruit_I2C):
                                                 red_list.append( self.readRed() )
                                         if "FLAG_CONV_G" not in stat:
                                                 green_list.append( self.readGreen() )
-                                        if "FLAG_CONV_G" not in stat:
+                                        if "FLAG_CONV_B" not in stat:
                                                 blue_list.append( self.readBlue() )
 			red_avg = float(sum( red_list)) / float(len(red_list))
                         green_avg = float(sum( green_list)) / float(len(green_list))
