@@ -112,7 +112,7 @@ class Motion(object):
 		tw = 1
 		td = 0.01
 		tot = 0
-		while(1):
+		while not self.stop_signal:
 			t0 = time()
 			self.w.rotate( theta_l[dr] )
 			while ir.val() < ir.get_thresh():
