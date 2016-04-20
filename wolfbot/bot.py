@@ -99,15 +99,18 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			
 		# state machine using ifelse control
 		if journey_state == "AT_SRC":
+			print "At source"
 			# at the start of the entry lane
 			bot_motion.start()
 			journey_state = "NEED_BLACK"
 			
 		elif journey_state == "NEED_BLACK":
+			print "Need black"
 			# moving on the entry lane up until red line, also make request to TIM
 			# keep waiting till first black line
 			if bot_sensor.is_Black() == False:
 				continue
+			print "Black found"
 			journey_state = "REQUEST"
 
 		elif journey_state == "REQUEST":
@@ -115,11 +118,14 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			pass_req = create_pass_request(bot_id, bot_type, entry_lane, exit_lane)
 			mqttc.publish("tim/jid_1/request", pass_req)
 			journey_state = "NEED_RED"
+			print "Request sent"
+			print "Need red"
 
 		elif journey_state == "NEED_RED":
 			# keep waiting till you come across red line
 			if bot_sensor.is_Red() == False:
 				continue
+			print "Found red"
 			
 			# stop the bot and go to wait state
 			bot_motion.stop()
@@ -129,6 +135,7 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			# waiting at red line for a go command from TIM
 			if command == "STOP_AT_RED":
 				continue
+			print "Crossing"
 			journey_state = "CROSSING"
 			
 		elif journey_state == "CROSSING":
@@ -147,6 +154,7 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 						bot_motion.cross_right()
 					else:
 						bot_motion.cross_left()
+			print "Crossed"
 			journey_state = "DEPARTING"
 			
 		elif journey_state == "DEPARTING":
@@ -158,11 +166,13 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			sleep(2)
 			complete_msg = create_complete_msg(bot_id, bot_type)
 			mqttc.publish("tim/jid_1/complete", complete_msg)
+			print "Completed"
 			
 			# travel for 3 more sec on the exit lane bofore stopping
 			# TODO :  caliberate
 			sleep(3) # sleep because there is nothing else to do
 			journey_state = "AT_DEST"
+			print "At destination"
 			
 		elif journey_state == "AT_DEST":
 			# on reaching the end of the exit lane
@@ -212,7 +222,7 @@ def main():
 	# manual interface.
 	mqttc.loop_forever()
 	
-	print "Destination reached. Terminating"
+	print "Terminating"
 
 
 if __name__ == "__main__":
