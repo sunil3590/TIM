@@ -159,16 +159,14 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			# start line following on the exit lane
 			bot_motion.start()
 			
-			# wait for 2 seconds before notifying that the junction is empty
-			# TODO :  caliberate
-			sleep(2)
+			# wait for 3 seconds before notifying that the junction is empty
+			sleep(3)
 			complete_msg = create_complete_msg(bot_id, bot_type)
 			mqttc.publish("tim/jid_1/complete", complete_msg)
 			print "Completed"
 			
-			# travel for 3 more sec on the exit lane bofore stopping
-			# TODO :  caliberate
-			sleep(3) # sleep because there is nothing else to do
+			# travel for few more sec on the exit lane bofore stopping
+			sleep(6) # sleep because there is nothing else to do
 			journey_state = "AT_DEST"
 			print "At destination"
 			
