@@ -87,13 +87,13 @@ class Motion(object):
 	# thread code that handels following line
 	def __follower(self):
 		if valid_wb:
-			drive_speed = 55
+			drive_speed = 50
 			while not self.stop_signal:
 				if self.ir.val() >= self.ir.get_thresh():
 					self.w.move(0, drive_speed)
 				else:
 					self.__rot_line()
-				sleep(0.1)
+				sleep(0.05)
 			self.w.move(0, 0)
 		else: #do nothing but simulate thread
 			t = 0
