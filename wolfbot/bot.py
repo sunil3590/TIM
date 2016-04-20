@@ -103,9 +103,9 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			# at the start of the entry lane
 			bot_motion.start()
 			journey_state = "NEED_BLACK"
+			print "Need black"
 			
 		elif journey_state == "NEED_BLACK":
-			print "Need black"
 			# moving on the entry lane up until red line, also make request to TIM
 			# keep waiting till first black line
 			if bot_sensor.is_Black() == False:
