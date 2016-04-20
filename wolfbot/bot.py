@@ -99,11 +99,9 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			
 		# state machine using ifelse control
 		if journey_state == "AT_SRC":
-			print "At source"
 			# at the start of the entry lane
 			bot_motion.start()
 			journey_state = "NEED_BLACK"
-			print "Need black"
 			
 		elif journey_state == "NEED_BLACK":
 			# moving on the entry lane up until red line, also make request to TIM
@@ -118,8 +116,6 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			pass_req = create_pass_request(bot_id, bot_type, entry_lane, exit_lane)
 			mqttc.publish("tim/jid_1/request", pass_req)
 			journey_state = "NEED_RED"
-			print "Request sent"
-			print "Need red"
 
 		elif journey_state == "NEED_RED":
 			# keep waiting till you come across red line
@@ -135,7 +131,6 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			# waiting at red line for a go command from TIM
 			if command == "STOP_AT_RED":
 				continue
-			print "Crossing"
 			journey_state = "CROSSING"
 			
 		elif journey_state == "CROSSING":
@@ -154,10 +149,13 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 						bot_motion.cross_right()
 					else:
 						bot_motion.cross_left()
-			print "Crossed"
 			journey_state = "DEPARTING"
 			
 		elif journey_state == "DEPARTING":
+			# give time to manually align the bot
+			print "Manually align the bot"
+			sleep(3)
+			
 			# start line following on the exit lane
 			bot_motion.start()
 			
