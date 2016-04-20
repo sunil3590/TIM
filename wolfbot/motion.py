@@ -108,7 +108,7 @@ class Motion(object):
 	def __rot_line(self):
 		ir = self.ir
 		dr = 1
-		theta_l = [-15, 13]     #bot 14 drifts left, need more power on right swing
+		theta_l = [-20, 18]     #bot 14 drifts left, need more power on right swing
 		tw = 1
 		td = 0.01
 		tot = 0
