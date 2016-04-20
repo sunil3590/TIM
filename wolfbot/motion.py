@@ -107,18 +107,23 @@ class Motion(object):
 	# use rotating movements to find line
 	def __rot_line(self):
 		ir = self.ir
-		angle = 2 # initial angle
-		step = 2 # angle increment
-		while(ang < 25):
-			self.w.rotate(angle)
+		dr = 1
+		theta_l = [-15, 13]     #bot 14 drifts left, need more power on right swing
+		tw = 1
+		td = 0.01
+		tot = 0
+		while(1):
+			t0 = time()
+			self.w.rotate( theta_l[dr] )
+			while ir.val() < ir.get_thresh():
+				if (time()-t0) > (tw*td):
+					break
+			self.w.rotate(0)
+			tot += tw*td
+			tw += 1
+			dr = (dr+1)%2
 			if ir.val() >= ir.get_thresh():
 				return
-			self.w.rotate(0)
-			self.w.rotate(-angle)
-			if ir.val() >= ir.get_thresh():
-				return
-			self.w.rotate(0)
-			angle += step
 
 
 # main function to test class
