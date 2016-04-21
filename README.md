@@ -9,9 +9,9 @@ Software that handles traffic at junctions. It's goal is to avoid collisions and
 ### Dependencies
 #### Install Mosquitto server
 ```
-sudo apt-get install uuid-dev
-sudo apt-get install xsltproc
-make clean all
+sudo apt-add-repository ppa:mosquitto-dev/mosquitto-ppa
+sudo apt-get update
+sudo apt-get install mosquitto
 ```
 
 #### Install MQTT client for Python

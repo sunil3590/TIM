@@ -59,7 +59,6 @@ class Motion(object):
 			self.w.move( 0, 60 )
 			sleep( 1.5 )
 			self.w.move( 0, 0 )
-			print "Turned Left"
 		else:
 			print "Turning Left!"
 
@@ -93,13 +92,13 @@ class Motion(object):
 	# thread code that handels following line
 	def __follower(self):
 		if valid_wb:
-			drive_speed = 55
+			drive_speed = 50
 			while not self.stop_signal:
 				if self.ir.val() >= self.ir.get_thresh():
 					self.w.move(0, drive_speed)
 				else:
 					self.__rot_line()
-				sleep(0.1)
+				sleep(0.05)
 			self.w.move(0, 0)
 		else: #do nothing but simulate thread
 			t = 0
@@ -107,7 +106,6 @@ class Motion(object):
 				sleep(1)
 				t += 1
 				print str(t) + "sec"
-		print "Follower thread returning"
 
 
 	# funciton for follower() to use
@@ -115,24 +113,21 @@ class Motion(object):
 	def __rot_line(self):
 		ir = self.ir
 		dr = 1
-		theta_l = [-25, 23]     #bot 14 drifts left, need more power on right swing
+		theta_l = [-20, 18]     #bot 14 drifts left, need more power on right swing
 		tw = 1
-		td = 0.02
+		td = 0.01
 		tot = 0
-		while(1):
+		while not self.stop_signal:
 			t0 = time()
 			self.w.rotate( theta_l[dr] )
 			while ir.val() < ir.get_thresh():
-	#                        print ir.travel_val()
-				if (time()-t0) > (tw*td) :
+				if (time()-t0) > (tw*td):
 					break
 			self.w.rotate(0)
 			tot += tw*td
 			tw += 1
 			dr = (dr+1)%2
 			if ir.val() >= ir.get_thresh():
-	#                        print tw
-	#                        print tot
 				return
 
 
