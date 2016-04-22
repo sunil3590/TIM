@@ -62,10 +62,10 @@ def on_command(mqttc, userdata, msg):
 	# send a command to the driver thread
 	if pass_comm["command"] == "go":
 		command_q.put("GO_AT_RED")
-		print "GO_AT_RED " + time()
+		print "GO_AT_RED " + str(time())
 	else:
 		command_q.put("STOP_AT_RED")
-		print "STOP_AT_RED " + time()
+		print "STOP_AT_RED " + str(time())
 
 # the driver function which controls the bot.
 def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
@@ -117,14 +117,14 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			# request TIM to pass the intersection
 			pass_req = create_pass_request(bot_id, bot_type, entry_lane, exit_lane)
 			mqttc.publish("tim/jid_1/request", pass_req)
-			print "REQUESTED " + time()
+			print "REQUESTED " + str(time())
 			journey_state = "NEED_RED"
 
 		elif journey_state == "NEED_RED":
 			# keep waiting till you come across red line
 			if bot_sensor.is_Red() == False:
 				continue
-			print "RED " + time()
+			print "RED " + str(time())
 			
 			# stop the bot and go to wait state
 			bot_motion.stop()
@@ -166,7 +166,7 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			sleep(3)
 			complete_msg = create_complete_msg(bot_id, bot_type)
 			mqttc.publish("tim/jid_1/complete", complete_msg)
-			print "COMPLETED " + time()
+			print "COMPLETED " + str(time())
 			
 			# travel for few more sec on the exit lane bofore stopping
 			sleep(6) # sleep because there is nothing else to do
