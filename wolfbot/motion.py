@@ -85,7 +85,7 @@ class Motion(object):
 			print "Turning Right"
 			self.w.move(0,60*pf)
 			sleep(1.4)
-			self.w.rotate(-30*.pf)	##neg cw right turn
+			self.w.rotate(-30*pf)	##neg cw right turn
 			sleep(0.9)
 			self.w.move(0,60*pf)
 			sleep(0.4)
