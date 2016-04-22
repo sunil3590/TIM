@@ -172,7 +172,8 @@ def generateTrafficPerLane(enter_lane, n, log_fname):
 def main():
 	# check usage
 	if len(sys.argv) != 3:
-		print "usage : <NUM BOTS>"
+		print "usage : NUM_BOTS LOG_FILE"
+		return
 	
 	n_bots = int(sys.argv[1])
 	log_fname = sys.argv[2]
