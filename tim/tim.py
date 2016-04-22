@@ -5,6 +5,7 @@ import paho.mqtt.client as paho
 import json
 import time
 import Queue
+import threading
 
 # which algo should TIM run?
 algo = "Q" # just a random initialization, will be over written
@@ -17,6 +18,8 @@ lane_request_qs = [Queue.Queue() for i in range(4)]
 # used to store details about the bot that is currently crossing
 cur_crossing = -1
 
+# lock to access queue
+lock = threading.Lock()
 
 # Create request topic from j_id
 def get_request_topic(j_id):
@@ -55,6 +58,9 @@ def make_response(command):
 
 # send GO to top req in the queue
 def send_go_top_q(mqttc):
+	# take lock
+	lock.acquire()
+
 	# if there are no pending requests
 	if request_q.empty() == True:
 		return -1;
@@ -62,9 +68,13 @@ def send_go_top_q(mqttc):
 	# get the top request from queue
 	req = request_q.get()
 
+	# release lock
+	lock.release()
+
 	# send the GO command
 	mqttc.publish(req["respond_to"], make_response("go"))
 	print(req["respond_to"] + " : GO")
+
 	# return the bot id as the current owner of junction
 	return req["bot_id"]
 
@@ -72,6 +82,9 @@ def send_go_top_q(mqttc):
 # add a req to priority queue algo data structs
 def add_req_to_pq(req):
 	global lane_pq
+
+	# take lock
+	lock.acquire()
 
 	# add request to the lanes req queue
 	lane_request_qs[req["enter"] - 1].put(req)
@@ -93,8 +106,15 @@ def add_req_to_pq(req):
 			new_lane_pq.put(lane)
 	lane_pq = new_lane_pq
 
+	# release lock
+	lock.release()
+
+
 # send GO to top req in the priority queue
 def send_go_top_pq(mqttc):
+	# take lock
+	lock.acquire()
+
 	# get the top priority lane and its req queue
 	lane = lane_pq.get()
 	lane_req_q = lane_request_qs[lane[2] - 1]
@@ -120,6 +140,9 @@ def send_go_top_pq(mqttc):
 	# update priority of lanes
 	# TODO : deal with : busy lane hogging the junction
 	lane_pq.put((lane[0] + bot_priority, lane[1], lane[2]))
+
+	# release lock
+	lock.release()
 
 	# return the bot id as the current owner of junction
 	return req["bot_id"]
