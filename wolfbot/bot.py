@@ -8,6 +8,7 @@ import Queue
 import motion
 import sensor
 from time import sleep
+from time import time
 
 # queue of commands for inter thread communication
 command_q = Queue.Queue() # STOP_AT_RED, GO_AT_RED
@@ -61,10 +62,10 @@ def on_command(mqttc, userdata, msg):
 	# send a command to the driver thread
 	if pass_comm["command"] == "go":
 		command_q.put("GO_AT_RED")
-		print "Recived GO"
+		print "GO_AT_RED " + time()
 	else:
 		command_q.put("STOP_AT_RED")
-		print "Recieved Stop"
+		print "STOP_AT_RED " + time()
 
 # the driver function which controls the bot.
 def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
@@ -82,14 +83,13 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 
 	# give time to manually align the bot
 	print "Manually align the bot"
-	sleep(3)
+	sleep(2)
 	
 	# sensor object to read markings on road
 	bot_sensor = sensor.Sensor()
 
 	#journey_state : AT_SRC, NEED_BLACK, REQUEST, NEED_RED, WAITING, CROSSING, DEPARTING, AT_DEST
 	journey_state = "AT_SRC"
-	print "AT_SRC"
 	
 	# by default, stop at red
 	command = "STOP_AT_RED"
@@ -105,46 +105,36 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			# at the start of the entry lane
 			bot_motion.start()
 			journey_state = "NEED_BLACK"
-			print "Looking for Black"
 	
 		elif journey_state == "NEED_BLACK":
 			# moving on the entry lane up until red line, also make request to TIM
 			# keep waiting till first black line
 			if bot_sensor.is_Black() == False:
 				continue
-			print "Black found"
 			journey_state = "REQUEST"
 
 		elif journey_state == "REQUEST":
 			# request TIM to pass the intersection
 			pass_req = create_pass_request(bot_id, bot_type, entry_lane, exit_lane)
 			mqttc.publish("tim/jid_1/request", pass_req)
+			print "REQUESTED " + time()
 			journey_state = "NEED_RED"
-			print "Looking for Red line"
 
 		elif journey_state == "NEED_RED":
 			# keep waiting till you come across red line
-			test1 = bot_sensor.is_Red()
-			test2 = bot_sensor.is_Red()
-			t = test1 & test2
-			print  t 
-			if t == False:
-				print "No Red"
+			if bot_sensor.is_Red() == False:
 				continue
-			print "Found red"
+			print "RED " + time()
 			
-			print "Found Red!"
 			# stop the bot and go to wait state
 			bot_motion.stop()
 			journey_state = "WAITING"
-			print "Waiting for cross"
 			
 		elif journey_state == "WAITING":
 			# waiting at red line for a go command from TIM
 			if command == "STOP_AT_RED":
 				continue
 			journey_state = "CROSSING"
-			print "Crossing "
 			
 		elif journey_state == "CROSSING":
 			# left / right / straight logic
@@ -163,12 +153,11 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 					else:
 						bot_motion.cross_left()
 			journey_state = "DEPARTING"
-			print "Departing"
 			
 		elif journey_state == "DEPARTING":
 			# give time to manually align the bot
 			print "Manually align the bot"
-			sleep(3)
+			sleep(1.5)
 			
 			# start line following on the exit lane
 			bot_motion.start()
@@ -177,16 +166,14 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			sleep(3)
 			complete_msg = create_complete_msg(bot_id, bot_type)
 			mqttc.publish("tim/jid_1/complete", complete_msg)
-			print "Completed"
+			print "COMPLETED " + time()
 			
 			# travel for few more sec on the exit lane bofore stopping
 			sleep(6) # sleep because there is nothing else to do
 			journey_state = "AT_DEST"
-			print "At destination"
 			
 		elif journey_state == "AT_DEST":
 			# on reaching the end of the exit lane
-			print "At Dest"
 			bot_motion.stop()
 			# disconnect after reaching the destination
 			mqttc.disconnect()
