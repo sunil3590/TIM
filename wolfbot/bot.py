@@ -7,9 +7,12 @@ import threading
 import Queue
 import motion
 import sensor
+import os
 from time import sleep
 from time import time
 from time import strftime
+
+os.system("sntp -s 129.6.15.30 &>/dev/null")
 
 # queue of commands for inter thread communication
 command_q = Queue.Queue() # STOP_AT_RED, GO_AT_RED
