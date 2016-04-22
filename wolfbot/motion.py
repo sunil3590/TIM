@@ -24,7 +24,9 @@ class Motion(object):
 			self.w.move(0, 0)
 		else:
 			print "Running Motion with fake data"
-	
+		
+		self.pf = 1.2	# 1.0 for 7.4V charge
+		
 		self.stop_signal = False
 		self.valid = True
 
@@ -47,16 +49,17 @@ class Motion(object):
 	# make a hardcoded left turn
 	def cross_left(self):
 		if valid_wb: 
+			pf = self.pf
 			print "Turning Left"
-			self.w.move(0,60)
+			self.w.move(0,60*pf)
 			sleep( 2 )
-			self.w.rotate( 27 )  #ccw turn
+			self.w.rotate( 27*pf )  #ccw turn
 			sleep( 0.5 )
-			self.w.move(0, 60)
+			self.w.move(0, 60*pf)
 			sleep( 1.2 )
-			self.w.rotate( 27 )
+			self.w.rotate( 27*pf )
 			sleep( 0.5 )
-			self.w.move( 0, 60 )
+			self.w.move( 0, 60 *pf)
 			sleep( 1.5 )
 			self.w.move( 0, 0 )
 		else:
@@ -67,7 +70,7 @@ class Motion(object):
 	def cross_straight(self):
 		if valid_wb: 
 			print "Turning Straight"
-			self.w.move(0,60)
+			self.w.move(0,60*self.pf)
 			sleep(4)
 			self.w.move(0,0)
 			print "Turned Straight"
@@ -78,11 +81,14 @@ class Motion(object):
 	# make a hardcoded right turn
 	def cross_right(self):
 		if valid_wb: 
+			pf = self.pf
 			print "Turning Right"
-			self.w.move(0,60)
+			self.w.move(0,60*pf)
 			sleep(1.4)
-			self.w.rotate(-30)	##neg cw right turn
+			self.w.rotate(-30*.pf)	##neg cw right turn
 			sleep(0.9)
+			self.w.move(0,60*pf)
+			sleep(0.4)
 			self.w.move(0,0)
 			print "Turned Right"	
 		else:
@@ -92,7 +98,8 @@ class Motion(object):
 	# thread code that handels following line
 	def __follower(self):
 		if valid_wb:
-			drive_speed = 50
+			pf = self.pf
+			drive_speed = 50*pf
 			while not self.stop_signal:
 				if self.ir.val() >= self.ir.get_thresh():
 					self.w.move(0, drive_speed)
@@ -113,7 +120,8 @@ class Motion(object):
 	def __rot_line(self):
 		ir = self.ir
 		dr = 1
-		theta_l = [-20, 18]     #bot 14 drifts left, need more power on right swing
+		pf = self.pf
+		theta_l = [-20*pf, 18*pf]     #bot 14 drifts left, need more power on right swing
 		tw = 1
 		td = 0.01
 		tot = 0
