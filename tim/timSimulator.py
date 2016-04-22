@@ -64,7 +64,12 @@ def send_go_top_q(mqttc):
 
 	# send the GO command
 	mqttc.publish(req["respond_to"], make_response("go"))
-	print(req["respond_to"] + " : GO")
+	if req["respond_to"] <= 50:
+		for i in range(len(request_q)):
+			req = request_q.get()
+			if req["respond_to"] <= 50 :
+				mqttc.publish(req["respond_to"], make_response("dec"))
+
 	# return the bot id as the current owner of junction
 	return req["bot_id"]
 
@@ -115,7 +120,6 @@ def send_go_top_pq(mqttc):
 
 	# send the GO command
 	mqttc.publish(req["respond_to"], make_response("go"))
-	print(req["respond_to"] + " : GO")
 
 	# update priority of lanes
 	# TODO : deal with : busy lane hogging the junction
@@ -143,7 +147,6 @@ def on_request(mqttc, userdata, msg):
 		# else send STOP
 		else:
 			mqttc.publish(req["respond_to"], make_response("stop"))
-			print(req["respond_to"] + " : STOP")
 
 	elif algo == "PQ":
 		# add request to q of the lane
@@ -155,7 +158,6 @@ def on_request(mqttc, userdata, msg):
 		# else send STOP
 		else:
 			mqttc.publish(req["respond_to"], make_response("stop"))
-			print(req["respond_to"] + " : STOP")
 
 
 # The callback for when a complete message is received

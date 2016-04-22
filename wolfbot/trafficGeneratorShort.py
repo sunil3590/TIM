@@ -5,8 +5,6 @@ import paho.mqtt.client as paho
 import json
 import threading
 import Queue
-#import motion
-#import sensor
 from time import sleep
 from random import gauss
 from random import randint
@@ -14,12 +12,8 @@ import numpy as np
 import time
 
 
-numberOfVehiclesInLane1 = 0
-numberOfVehiclesInLane2 = 0
-numberOfVehiclesInLane3 = 0
-numberOfVehiclesInLane4 = 0
-
 # queue of commands for inter thread communication
+file_lock = threading.Lock()
 command_q = Queue.Queue() # STOP_AT_RED, GO_AT_RED
 
 def generateSleepValues():
@@ -37,8 +31,15 @@ def generateSleepValues():
         return sleep
 
 def generateTrafficPerLane(enterLane, sleep):
-	for x in range(0,50):
-        	time.sleep(sleep[x])
+	for x in range(1,5):
+		if (x == 1) and (enterLane == 1):
+        		time.sleep(0)
+		if (x == 1) and (enterLane == 2):
+        		time.sleep(0.25)
+		if (x == 1) and (enterLane == 3):
+        		time.sleep(0.5)
+		if (x == 1) and (enterLane == 4):
+        		time.sleep(0.75)
         	if enterLane == 1:
                 	bot_id = x
         	elif enterLane == 2:
@@ -47,11 +48,9 @@ def generateTrafficPerLane(enterLane, sleep):
                 	bot_id = x+100
         	else:
                 	bot_id = x+150
-		flag = True
-        	while flag:
+		exit_lane = enterLane
+        	while exit_lane == enterLane:
 			exit_lane = randint(1,4)
-			if exit_lane != enterLane :
-				flag = False
 
         	# get mqtt client
         	client = prepare_mqttc("localhost",str(bot_id),1883)
@@ -75,7 +74,7 @@ def prepare_mqttc(mqtt_host, bot_id, mqtt_port):
 	
 	# subscribe to TOPIC
 	topic = get_topic(bot_id)
-	print topic
+	#print topic
 	mqttc.subscribe(topic)
 	
 	return mqttc
@@ -103,7 +102,7 @@ def create_complete_msg(bot_id, bot_type):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_command(mqttc, userdata, msg):
-	print msg.payload
+	#print msg.payload
 	
 	# parse the payload
 	pass_comm = json.loads(msg.payload)
@@ -111,26 +110,21 @@ def on_command(mqttc, userdata, msg):
 	# send a command to the driver thread
 	if pass_comm["command"] == "go":
 		command_q.put("GO_AT_RED")
-	elif pass_comm["command"] == "dec":
-		command_q.put("DEC")
 	else :
 		command_q.put("STOP_AT_RED")
+		print("STOP")
 
 # the driver function which controls the bot.
 def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 	# check entry and exit lanes
-	global numberOfVehiclesInLane1
-	global numberOfVehiclesInLane2
-	global numberOfVehiclesInLane3
-	global numberOfVehiclesInLane4
-	print entry_lane
-	print exit_lane
+	global file_lock
+	logs  = []
 	if entry_lane < 1 or entry_lane > 4 or exit_lane < 1 or exit_lane > 4 or entry_lane == exit_lane:
 		print "Invalid entry or exit lane"
 		return
 
 	#journey_state : AT_SRC, NEED_BLACK, REQUEST, NEED_RED, WAITING, CROSSING, DEPARTING, AT_DEST
-	journey_state = "AT_SRC"
+	journey_state = "REQUEST"
 	
 	# by default, stop at red
 	command = "STOP_AT_RED"
@@ -142,92 +136,53 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q):
 			command = command_q.get()
 			
 		# state machine using ifelse control
-		numberOfVehiclesAheadOfMe = 0
-		if journey_state == "AT_SRC":
-			print ("At source")
+		if journey_state == "REQUEST":
+			logs.append(bot_id)
+			logs.append(bot_type)
+			logs.append(time.asctime(time.localtime(time.time())))
 			# at the start of the entry lane
-			#bot_motion.start()
-			if entry_lane == 1:
-				numberOfVehiclesAheadOfMe = numberOfVehiclesInLane1
-				numberOfVehiclesInLane1 += 1
-			elif entry_lane == 2 :
-				numberOfVehiclesAheadOfMe = numberOfVehiclesInLane2
-				numberOfVehiclesInLane2 += 1
-			elif entry_lane == 3 :
-				numberOfVehiclesAheadOfMe = numberOfVehiclesInLane3
-				numberOfVehiclesInLane3 += 1
-			elif entry_lane == 4 :
-				numberOfVehiclesAheadOfMe = numberOfVehiclesInLane4
-				numberOfVehiclesInLane4 += 1
-
-			journey_state = "NEED_BLACK"
 			
-		elif journey_state == "NEED_BLACK":
-			print ("Need Black")
-			# moving on the entry lane up until red line, also make request to TIM
-			# keep waiting till first black line
-			if (numberOfVehiclesAheadOfMe != 0) and (command == "DEC") :
-				numberOfVehiclesAheadOfMe -= 1
-				if numberOfVehiclesAheadOfMe > 5 :
-					continue
-				else :
-					journey_state = "REQUEST"
-			elif numberOfVehiclesAheadOfMe == 0 :
-				journey_state = "REQUEST"
-			else :
-				continue
-
-		elif journey_state == "REQUEST":
-			print ("Request")
 			# request TIM to pass the intersection
 			pass_req = create_pass_request(bot_id, bot_type, entry_lane, exit_lane)
 			mqttc.publish("tim/jid_1/request", pass_req)
-			journey_state = "NEED_RED"
+			journey_state = "WAITING"
+			print str(bot_id) + " REQUESTED"
 
-		elif journey_state == "NEED_RED":
-			print ("NEED RED")
-			# keep waiting till you come across red line
-			if (numberOfVehiclesAheadOfMe != 0) and (command == "DEC") :
-				numberOfVehiclesAheadOfMe -= 1
-				if numberOfVehiclesAheadOfMe != 0:
-					continue
-				else :
-					journey_state = "WAITING"
-			elif numberOfVehiclesAheadOfMe == 0 :
-				journey_state = "WAITING"
-			else :
-				continue
-			
 		elif journey_state == "WAITING":
-			print ("Waiting")
 			# waiting at red line for a go command from TIM
+			#print str(bot_id) + "WAITING"
 			if command == "STOP_AT_RED":
 				continue
+			else :
+				print ("GO " + bot_id)
 			journey_state = "CROSSING"
 			
 		elif journey_state == "CROSSING":
-			print ("CROSSING")
-			# left / right / straight logic
-			sleep(0.5)
-			journey_state = "DEPARTING"
+			# sleep to simulate crossing
+			#print str(bot_id) + " CROSSING"
+			sleep(3)
+			logs.append(time.asctime(time.localtime(time.time())))
+			journey_state = "COMPLETED"
 			
-		elif journey_state == "DEPARTING":
-			print ("Departin")
-			sleep(1)
+		elif journey_state == "COMPLETED":
 			complete_msg = create_complete_msg(bot_id, bot_type)
 			mqttc.publish("tim/jid_1/complete", complete_msg)
+			print ("COMPLETED " + str(bot_id))
 			
-			# travel for 3 more sec on the exit lane bofore stopping
-			# TODO :  caliberate
-			sleep(3) # sleep because there is nothing else to do
 			journey_state = "AT_DEST"
 			
 		elif journey_state == "AT_DEST":
-			# on reaching the end of the exit lane
-			#bot_motion.stop()
-			sleep(0.5)
-			# disconnect after reaching the destination
+			file_lock.acquire()
+			f = open("log.txt",'a')
+			for i in range(0,4):
+				f.write(str(logs[i])+" , ")
+			f.write("\n")
+			file_lock.release()
+			#print ("AT_DEST " + str(bot_id))
+                        
+                        # disconnect after reaching the destination
 			mqttc.disconnect()
+			
 			break
 
 
@@ -235,17 +190,21 @@ sleepRed = generateSleepValues()
 sleepGreen = generateSleepValues()
 sleepBlue = generateSleepValues()
 sleepMagenta = generateSleepValues()
-print(sleepBlue)
-print(sleepGreen)
-print(sleepRed)
-print(sleepMagenta)
 
 threadForLane1 = threading.Thread(target = generateTrafficPerLane, args = (1, sleepBlue))
 threadForLane1.start()
-threadForLane1 = threading.Thread(target = generateTrafficPerLane, args = (2, sleepGreen))
-threadForLane1.start()
-threadForLane1 = threading.Thread(target = generateTrafficPerLane, args = (3, sleepRed))
-threadForLane1.start()
-threadForLane1 = threading.Thread(target = generateTrafficPerLane, args = (4, sleepMagenta))
-threadForLane1.start()
+threadForLane2 = threading.Thread(target = generateTrafficPerLane, args = (2, sleepGreen))
+threadForLane2.start()
+threadForLane3 = threading.Thread(target = generateTrafficPerLane, args = (3, sleepRed))
+threadForLane3.start()
+threadForLane4 = threading.Thread(target = generateTrafficPerLane, args = (4, sleepMagenta))
+threadForLane4.start()
 
+print "bye bye"
+
+threadForLane1.join()
+threadForLane2.join()
+threadForLane3.join()
+threadForLane4.join()
+
+print "bye bye"
