@@ -6,10 +6,10 @@ import json
 import threading
 import Queue
 from time import sleep
-from random import gauss
-from random import randint
 import numpy as np
 import time
+from random import random
+from random import randint
 
 
 # queue of commands for inter thread communication
@@ -30,7 +30,6 @@ def prepare_mqttc(mqtt_host, bot_id, mqtt_port, command_q):
 	
 	# subscribe to TOPIC
 	topic = get_topic(bot_id)
-	#print topic
 	mqttc.subscribe(topic)
 	
 	return mqttc
@@ -87,6 +86,9 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q, log_fname)
 	
 	# by default, stop at red
 	command = "STOP_AT_RED"
+
+	# start listening to mqtt msgs
+	mqttc.loop_start()
 	
 	# loop to control the motion and sensors based on TIM command
 	while (True):
@@ -98,7 +100,8 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q, log_fname)
 		if journey_state == "REQUEST":
 			logs.append(bot_id)
 			logs.append(bot_type)
-			logs.append(int(time.time()))
+			start_time = int(time.time())
+			logs.append(start_time)
 			# at the start of the entry lane
 			
 			# request TIM to pass the intersection
@@ -115,47 +118,53 @@ def driver(mqttc, bot_id, bot_type, entry_lane, exit_lane, command_q, log_fname)
 			
 		elif journey_state == "CROSSING":
 			# sleep to simulate crossing
-			sleep(3)
-			logs.append(int(time.time()))
+			sleep(1)
 			journey_state = "COMPLETED"
 			
 		elif journey_state == "COMPLETED":
 			complete_msg = create_complete_msg(bot_id, bot_type)
 			mqttc.publish("tim/jid_1/complete", complete_msg)
 			
+			end_time = int(time.time())
+			logs.append(end_time)
+			logs.append(end_time - start_time)
+			
 			journey_state = "AT_DEST"
 			
 		elif journey_state == "AT_DEST":
 			# log all the data
 			file_lock.acquire()
-			f = open(log_fname,'a')
-			for i in range(0,4):
-				f.write(str(logs[i]) + ",")
+			f = open(log_fname, 'a')
+			for log in logs:
+				f.write(str(log) + ",")
 			f.write("\n")
 			f.close()
 			file_lock.release()
 
 			# disconnect after reaching the destination
+			mqttc.loop_stop()
 			mqttc.disconnect()
 			
 			print str(bot_id) + " COMPLETED"
 			break
 
 
-def generateSleepValues(n):
-	return [randint(1,4) for x in range(n)]
+def generateSleepValues(n, delay):
+	return [random() * delay for x in range(n)]
 
 
 def generateTrafficPerLane(enter_lane, n, log_fname):
-	sleep_dur = generateSleepValues(n)
+	sleep_dur = generateSleepValues(n, delay=enter_lane)
 
 	for x in range(0, n):
+		sleep(sleep_dur[x])
+
 		# create paramters for bot
 		bot_id = str(enter_lane) + "_" + str(x)
 		bot_type = "civilian"
 		exit_lane = enter_lane
 		while exit_lane == enter_lane:
-			exit_lane = randint(1,4)
+			exit_lane = randint(1, 4)
 
 		# seaparate command queue for each bot
 		command_q = Queue.Queue() # STOP_AT_RED, GO_AT_RED
@@ -165,7 +174,9 @@ def generateTrafficPerLane(enter_lane, n, log_fname):
 		# create a thread for the driver function
 		driver_thread = threading.Thread(target = driver, args = (client, bot_id, bot_type, enter_lane, exit_lane, command_q, log_fname))
 		driver_thread.start()
-		client.loop_forever()
+	
+	driver_thread.join()
+	print "Lane thread exiting " + str(enter_lane)
 
 
 # main function
