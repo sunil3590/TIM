@@ -6,6 +6,7 @@ import json
 import time
 import Queue
 import threading
+import copy
 
 # which algo should TIM run?
 algo = "Q" # just a random initialization, will be over written
@@ -20,6 +21,7 @@ cur_crossing = -1
 
 # lock to access queue
 lock = threading.Lock()
+
 
 # Create request topic from j_id
 def get_request_topic(j_id):
@@ -56,6 +58,26 @@ def make_response(command):
     return json.dumps(res)
 
 
+# define bot priority
+def get_bot_priority(bot_type):
+	if bot_type == "ems":
+		return 100
+	else:
+		return 1
+
+
+# print PQ
+def print_pq(pq):
+	lanes = []
+	while pq.empty() == False:
+		lane = pq.get()
+		print str(lane[0]) + " " + str(lane[1]) + " " + str(lane[2])
+		lanes.append(lane)
+
+	for lane in lanes:
+		pq.put(lane)
+
+
 # send GO to top req in the queue
 def send_go_top_q(mqttc):
 	# take lock
@@ -90,13 +112,9 @@ def add_req_to_pq(req):
 	lane_request_qs[req["enter"] - 1].put(req)
 
 	# priority of bot
-	if req["bot_type"] == "ems":
-		bot_priority = 100
-	else:
-		bot_priority = 1
+	bot_priority = get_bot_priority(req["bot_type"])
 
 	# update priority of lanes
-	# TODO : deal with : busy lane hogging the junction
 	new_lane_pq = Queue.PriorityQueue()
 	while lane_pq.empty() == False:
 		lane = lane_pq.get()
@@ -106,12 +124,16 @@ def add_req_to_pq(req):
 			new_lane_pq.put(lane)
 	lane_pq = new_lane_pq
 
+	# print_pq(lane_pq)
+
 	# release lock
 	lock.release()
 
 
 # send GO to top req in the priority queue
 def send_go_top_pq(mqttc):
+	global lane_pq
+
 	# take lock
 	lock.acquire()
 
@@ -128,18 +150,16 @@ def send_go_top_pq(mqttc):
 	req = lane_req_q.get()
 
 	# priority of bot
-	if req["bot_type"] == "ems":
-		bot_priority = 100
-	else:
-		bot_priority = 1
+	bot_priority = get_bot_priority(req["bot_type"])
 
 	# send the GO command
 	mqttc.publish(req["respond_to"], make_response("go"))
 	print(req["respond_to"] + " : GO")
 
 	# update priority of lanes
-	# TODO : deal with : busy lane hogging the junction
 	lane_pq.put((lane[0] + bot_priority, lane[1], lane[2]))
+
+	# TODO : deal with, busy lane hogging the junction
 
 	# release lock
 	lock.release()
