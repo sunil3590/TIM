@@ -21,6 +21,8 @@ sudo apt-get install mosquitto
 
 ### Code
 #### Wolfbot Classes
+This code is to be installed and run on each Wolfbot.
+
 ir_ain.py
 Sensor class that intatiates an ADC object for easily reading the IR analog ouputs, and uses a threshold to determine if sensor is detecting white (or conversly, black). 
 
@@ -44,15 +46,19 @@ This code instantiates the wolfbot class (see ARoS documentation https://github.
 
 
 bot.py
+Needs: Bot ID, Type (civiliam or ems), Source, Destination, Server IP, (optional) Port
 'python bot.py 1 civilian 2 3 192.168.23.3'
-
+This code is responsible for moving the bot from source lane to destination lane, using the sensor class to navigate the mock intersection, using motion class to achieve line following and turning, and interacting with TIM to safely cross the intersection.
 
 #### TIM Classes
+This code runs on user's PC.
+
 tim.py
 Needs: Algorithm type, mosquitto server ip, (optional) port ip
 'python tim.py PQ 192.168.23.3'
+This code manages recieving requests from bots to cross, prioritizing requests and sending GO commands accordingly, and receiving completed notification from bots to proceed with next request
 
 traffic_generator.py
 Needs: number of vehicles to simulate, log file name for output
 'python traffic_generator.py 100 log1.txt'
-
+This code has one thread per lane which launches multiple bot threads at certain intervals. Each bot thread simulates a physical bot by sending requests and notifications. Logs time stamps of various events to help further analysis
